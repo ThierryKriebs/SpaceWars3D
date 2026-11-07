@@ -4,7 +4,7 @@ Carte d'identité du projet, à lire par tout agent de codage **avant** d'écrir
 
 ## Le projet
 
-Jeu vidéo de vaisseau spatial en 3D sur le web, développé par Thierry (débutant motivé, formation Next.js terminée le 4 nov. 2026). Actuellement en phase : démo visuelle "Terre 2065" opérationnelle ; prochaine étape = rendre le vaisseau pilotable (physique newtonienne). Pas d'ennemis, pas de tir, pas de score avant que le pilotage soit solide.
+Jeu vidéo de vaisseau spatial en 3D sur le web, développé par Thierry (débutant motivé, formation Next.js terminée le 4 nov. 2026). Actuellement en phase : démo visuelle "Terre 2065" opérationnelle (référence). Prochaine étape = **MISSION 0 : renaissance de zéro, élément par élément** (plan détaillé dans `JOURNAL.md`) — puis mission 1 : le vaisseau pilotable (physique newtonienne). Pas d'ennemis, pas de tir, pas de score avant que le pilotage soit solide.
 
 ## ⚠️ CHARTE DE COLLABORATION — À RESPECTER À LA LETTRE
 
@@ -17,7 +17,8 @@ Thierry apprend en codant. Le 5 nov. 2026, une session sans cadre a produit un d
 5. **Tout le code en anglais** : noms de variables, fonctions, fichiers ET commentaires. Le français reste dans le chat et les fichiers .md uniquement.
 6. **Pas de refactoring, pas de renommage, pas de réorganisation** de fichiers existants sans demande explicite.
 7. **En cas de conflit avec un choix déjà acté (voir VISION.md) : s'arrêter et demander.**
-8. **En fin de session** : ajouter 3 lignes à `JOURNAL.md` (ce qui a été fait / ce qui a cassé ou été appris / la prochaine étape), puis rappeler à Thierry de committer et pousser.
+8. **Cohérence de l'existant après tout ajout ou modification** : avant de considérer une mise à jour comme terminée, RELIRE tout ce qu'elle impacte ailleurs — annotations de l'arbre vs sections détaillées, résumés vs exemples, règles vs tableaux, docs entre eux (AGENTS ↔ ARCHITECTURE ↔ JOURNAL). Un document qui se contredit est un document mort : le résumé mentant, l'agent croit le résumé. Ne jamais considérer un ajout comme "local".
+9. **En fin de session** : ajouter 3 lignes à `JOURNAL.md` (ce qui a été fait / ce qui a cassé ou été appris / la prochaine étape), puis rappeler à Thierry de committer et pousser.
 
 ## Stack (ne pas changer sans demande explicite)
 
@@ -28,13 +29,8 @@ Thierry apprend en codant. Le 5 nov. 2026, une session sans cadre a produit un d
 
 ## Structure
 
-```
-src/
-├── app/            # une URL = un dossier ; page.tsx = vitrine
-│   ├── layout.tsx, globals.css, page.tsx
-│   └── terre2065/page.tsx
-└── components/     # les briques réutilisables (Terre2065.tsx)
-```
+- **Structure du code** : LA référence est **`ARCHITECTURE.md`** (contrainte, principes, règles de circulation).
+- **On repart de zéro, élément par élément** : décision actée le 7 nov. 2026 — plan détaillé des pas dans **`JOURNAL.md`** (session du 7 nov.). La démo (2 fichiers : `app/terre2065/page.tsx` + `components/Terre2065.tsx`) reste vivante telle quelle comme RÉFÉRENCE et vitrine — pas de renommage, pas de maintenance, pas d'option de menu, suppression par décision explicite quand `/play` l'aura rattrapée. Le nouveau code se construit pas à pas dans la structure cible (`/play`), chaque pas compris par Thierry. Ne jamais copier la démo en bloc : on s'en inspire, on en porte des morceaux à la demande, en les expliquant.
 
 ## Règles techniques critiques
 
@@ -46,6 +42,7 @@ src/
 ## Contexte supplémentaire
 
 - **`VISION.md`** : LA bible du projet — vision, design diégétique, scénario, missions, feuille de route. **À consulter avant toute décision de conception.**
+- **`ARCHITECTURE.md`** : LA carte technique du code — où va chaque fichier, les 5 principes, les règles de circulation, les décisions déjà tranchées. **Document contraignant : à lire AVANT de créer le moindre fichier ou dossier. En cas de doute "où va ceci ?", la réponse s'y trouve — sinon on demande, on ne devine pas.**
 - `JOURNAL.md` : historique des sessions et incidents.
 - `IDEES.md` : idées en vrac, à ne PAS implémenter sans demande.
 - Machine de Thierry : Windows, dossier local

@@ -1,36 +1,35 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Space Wars 3D
 
-## Getting Started
+Shooter spatial 3D à missions dans le navigateur — *« l'espace comme il est vraiment, avec le rythme que Star Wars nous a appris à aimer. »*
 
-First, run the development server:
+Next.js 16 (App Router, React 19, TypeScript) + three.js via @react-three/fiber et @react-three/drei. Physique newtonienne 6DOF, missions au rythme arcade, design sonore "Gravity" (le silence de l'espace).
+
+## Démarrage
+
+**⚠️ pnpm uniquement — jamais `npm` ni `yarn` :**
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
+pnpm install
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- `localhost:3000/terre2065` — la démo visuelle de référence (Terre 2065)
+- `localhost:3000/play` — le jeu en construction (mission 0 en cours)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Documentation (racine du repo)
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Tout agent de codage lit ces fichiers **avant** d'écrire la moindre ligne :
 
-## Learn More
+| Fichier | Rôle |
+|---|---|
+| `AGENTS.md` | La charte de collaboration (9 règles, stack, interdits) |
+| `ARCHITECTURE.md` | La carte contraignante du code — où va chaque fichier et pourquoi |
+| `VISION.md` | La bible — vision, design, scénario, feuille de route |
+| `JOURNAL.md` | La mémoire des sessions — plan de la mission 0 |
+| `IDEES.md` | Parking d'idées — rien à implémenter sans décision explicite |
 
-To learn more about Next.js, take a look at the following resources:
+## Notes techniques
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Tailwind CSS v4 **épinglé à `4.3.3` exact** (la 4.3.4+ casse le build — bug `magic-string`, nov. 2026).
+- Tout composant three.js est chargé via `dynamic(() => import(...), { ssr: false })` : WebGL ne se rend jamais côté serveur.
+- Les pages (`app/`) restent minuscules : elles branchent, elles ne calculent pas.

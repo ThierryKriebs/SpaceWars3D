@@ -127,7 +127,9 @@ Analyse concurrentielle (vérifiée oct. 2026) : *Squadron 42* (campagne solo St
 
 ## État actuel du chantier (nov. 2026)
 
-**Migration Next.js faite (4 nov. 2026)** : le projet vit désormais dans une app Next.js 16 (App Router) — `pnpm dev` → `localhost:3000/terre2065`. La démo visuelle Terre 2065 (continents, nuages, atmosphère procéduraux) tourne. L'ancienne version React canvas unique (~790 lignes) est historique. Le même style de collaboration s'applique : commentaires pédagogiques en français, démonstrations pratiques, marches de taille humaine.
+**Architecture actée (7 nov. 2026)** : la structure du code est définie et contraignante dans `ARCHITECTURE.md` (lire avant tout fichier créé). Décision de même jour : la construction se fait **de zéro, élément par élément** (mission 0 "renaissance" — plan des pas dans `JOURNAL.md`) ; la démo Terre 2065 reste référence visuelle jusqu'au rattrapage de `/play`.
+
+**Migration Next.js faite (4 nov. 2026)** : le projet vit désormais dans une app Next.js 16 (App Router) — `pnpm dev` → `localhost:3000/terre2065`. La démo visuelle Terre 2065 (continents, nuages, atmosphère procéduraux) tourne. L'ancienne version React canvas unique (~790 lignes) est historique. Style de collaboration inchangé : démonstrations pratiques, marches de taille humaine, pédagogie en français dans le chat et les fichiers .md — **mais code 100 % en anglais, commentaires compris** (charte AGENTS.md, règle 5).
 
 ## Bugs mémorables (ne pas reproduire)
 
@@ -179,4 +181,4 @@ Analyse concurrentielle (vérifiée oct. 2026) : *Squadron 42* (campagne solo St
 
 ---
 
-*Synchro intégrale : 5 nov. 2026, carnet projet → repo. Toute évolution majeure de la vision se note ici, en session.*
+*Synchro intégrale : 7 nov. 2026, carnet projet → repo. Toute évolution majeure de la vision se note ici, en session.*
