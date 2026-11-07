@@ -39,6 +39,7 @@ src/
 
 ## Contexte supplémentaire
 
+- **`VISION.md`** : LA bible du projet — vision, design diégétique, scénario, missions, feuille de route. **À consulter avant toute décision de conception.**
 - `JOURNAL.md` : historique des sessions et incidents.
 - `IDEES.md` : idées en vrac, à ne PAS implémenter sans demande.
 - Machine de Thierry : Windows, dossier local
