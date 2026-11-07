@@ -6,6 +6,19 @@ Carte d'identité du projet, à lire par tout agent de codage **avant** d'écrir
 
 Jeu vidéo de vaisseau spatial en 3D sur le web, développé par Thierry (débutant motivé, formation Next.js terminée le 4 nov. 2026). Actuellement en phase : démo visuelle "Terre 2065" opérationnelle ; prochaine étape = rendre le vaisseau pilotable (physique newtonienne). Pas d'ennemis, pas de tir, pas de score avant que le pilotage soit solide.
 
+## ⚠️ CHARTE DE COLLABORATION — À RESPECTER À LA LETTRE
+
+Thierry apprend en codant. Le 5 nov. 2026, une session sans cadre a produit un débordement complet (objets 3D partout, chantier incompréhensible) — cela ne se reproduira plus. Règles non négociables :
+
+1. **N'écris QUE ce qui est demandé.** Zéro fonctionnalité bonus, zéro fichier non demandé, zéro "j'en ai profité pour…". Si une idée surgit, la *proposer en une phrase* — ne jamais l'implémenter seul.
+2. **Une intervention = UN petit pas.** Pas plus de ~30 lignes modifiées par étape. La session avance étape par étape, jamais par blocs.
+3. **Expliquer AVANT d'écrire** : en 2-3 phrases simples (pas de jargon), dire ce qu'on va faire et pourquoi. Puis coder. Puis résumer ce qui a changé, fichier par fichier.
+4. **Si la demande est ambiguë, NE PAS deviner** : poser une question. Une question de trop vaut mieux qu'une heure de travail à côté.
+5. **Tout le code en anglais** : noms de variables, fonctions, fichiers ET commentaires. Le français reste dans le chat et les fichiers .md uniquement.
+6. **Pas de refactoring, pas de renommage, pas de réorganisation** de fichiers existants sans demande explicite.
+7. **En cas de conflit avec un choix déjà acté (voir VISION.md) : s'arrêter et demander.**
+8. **En fin de session** : ajouter 3 lignes à `JOURNAL.md` (ce qui a été fait / ce qui a cassé ou été appris / la prochaine étape), puis rappeler à Thierry de committer et pousser.
+
 ## Stack (ne pas changer sans demande explicite)
 
 - **Next.js 16** (App Router) + **React 19** + React Compiler activé + TypeScript
@@ -29,13 +42,6 @@ src/
    `dynamic(() => import("@/components/X"), { ssr: false })` dans une page `"use client"`.
 2. Les pages (`app/`) restent minuscules : elles branchent, elles ne calculent pas.
 3. TypeScript strict : typer explicitement les paramètres de fonctions (`: number`, etc.).
-
-## Règles de collaboration
-
-- **Une session = une victoire** : chaque session de travail se termine par UNE chose qui fonctionne. Pas de grande réécriture en cascade.
-- Pas de refactoring non demandé. Le plus petit pas qui marche.
-- Expliquer les choix, Thierry apprend en même temps que le code s'écrit.
-- Tout incident (bug, fix) est consigné dans `JOURNAL.md`.
 
 ## Contexte supplémentaire
 
