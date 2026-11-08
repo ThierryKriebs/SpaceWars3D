@@ -17,16 +17,30 @@
 import { useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 
+const STEP = 1 / 60; // one tick = 1/60 s of real time, on every machine
+
 // Our game loop, plugged into the Canvas render loop
 function GameLoop() {
-  const frameCount = useRef(0);
+  // useRef is a React "box": it holds a value that survives re-renders,
+  // and writing to `.current` does NOT trigger a re-render.
+  // Perfect for counters that live inside the render loop.
+  const tickCount = useRef(0);
+  const accumulator = useRef(0);
 
   // useFrame runs ONCE, at mount: it hands our function to r3f.
-  // r3f's loop then calls THAT FUNCTION on every frame.
-  useFrame(() => {
-    frameCount.current += 1;
-    if (frameCount.current % 60 === 0) {
-      console.log(`[GameLoop] frame #${frameCount.current}`);
+  // r3f's loop then calls THAT FUNCTION on every frame (100 Hz here, 60 Hz there).
+  useFrame((_, delta: number) => {
+    // _ = r3f's state (camera, scene...), we don't need it here.
+    // delta = real seconds elapsed since the previous frame, from r3f's clock: The Monitor decides HOW OFTEN we run;
+    accumulator.current += delta; // useRef return a object with a `.current` property that survives re-renders, perfect for counters that live inside the render loop.
+
+    // 60 ticks per real second, on every machine.
+    while (accumulator.current >= STEP) {
+      accumulator.current -= STEP;
+      tickCount.current += 1;
+      if (tickCount.current % 60 === 0) {
+        console.log(`[GameLoop] tick #${tickCount.current} (60 Hz fixed)`);
+      }
     }
   });
 
