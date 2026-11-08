@@ -7,6 +7,28 @@ La carte du chantier : qui va où, et pourquoi. Les dossiers naissent quand leur
 
 ---
 
+## Sommaire
+
+1. [Les cinq grands principes](#sec-01) — la constitution du projet.
+2. [L'arborescence cible](#sec-02) — qui va où, l'arbre complet annoté.
+3. [Exemple concret](#sec-03) — un niveau JSON décortiqué.
+4. [`Scene.tsx`](#sec-04) — le cadre et la troupe.
+5. [`game/core`](#sec-05) — le cœur et le tour d'une frame.
+6. [Qui rafraîchit l'écran ?](#sec-06) — le bouton et la machine, les deux boucles.
+7. [`state.ts`](#sec-07) — où vivent les propriétés des objets, et comment le 3D les relit.
+8. [`events.ts`](#sec-08) — le carrefour des événements (publier / s'abonner).
+9. [`controls/`](#sec-09) — les entrées : capter, traduire, écrire.
+10. [Le fond du monde](#sec-10) — l'environnement en trois exemples.
+11. [Où va quoi](#sec-11) — le tableau de correspondance.
+12. [Règles de circulation](#sec-12) — les imports et leurs sens uniques.
+13. [Les contradictions futures, déjà tranchées](#sec-13) — les débats clos d'avance.
+14. [La démo Terre 2065](#sec-14) — son statut de référence visuelle.
+15. [Ce qui n'existe pas encore](#sec-15) — et pourquoi c'est voulu.
+
+---
+
+<a id="sec-01"></a>
+
 ## Les cinq grands principes
 
 1. **`app/` reste minuscule** : une page Next.js ne fait que *brancher* (import d'une scène 3D en `ssr: false`). Zéro calcul dedans.
@@ -16,6 +38,8 @@ La carte du chantier : qui va où, et pourquoi. Les dossiers naissent quand leur
 5. **Le rendu est un miroir** (`components/game/`) : les composants three.js ne *calculent* pas le jeu, ils *affichent* ce que `game/` décide. Interactive = possède un cerveau (module de comportement) ; inerte = simple décor. Un même objet peut changer de statut (épave inerte → amarrable) : on ajoute le cerveau, pas un dossier.
 
 ---
+
+<a id="sec-02"></a>
 
 ## L'arborescence cible
 
@@ -44,6 +68,12 @@ src/
 │                                 #   l'assemblage CameraRig + Environment + Entities + Effects
 │                                 #   (la troupe). Aucun niveau, aucun mode dedans —
 │                                 #   voir section « Scene.tsx » ci-dessous
+│       ├── Entities.tsx          # LE MIROIR DES ENTITÉS : un composant par espèce vivante —
+│                                 #   lit la photo (state) dans son useFrame de RENDU et monte
+│                                 #   une maquette par fiche. Ne calcule rien, ne décide rien :
+│                                 #   il RECOPIE (voir section « state.ts » ci-dessous)
+│       ├── CameraRig.tsx         # LA CAMÉRA : lit la photo (position du vaisseau) et place la
+│                                 #   caméra qui suit — un miroir de plus, rien d'autre
 │       ├── models/              # BIBLIOTHÈQUE DE MAQUETTES (réutilisables, toute faction)
 │       │   ├── ships/           # chasseurs, croiseurs, vaisseaux capitaux
 │       │   │   ├── FalconMk2.tsx    # ex. : le chasseur du joueur au début
@@ -84,7 +114,8 @@ src/
 │   │   ├── NpcShip.ts            # alliés ET ennemis — faction = propriété
 │   │   ├── Projectile.ts         # missile/roquette/torpille : comportement + variantes
 │   │   └── Prop.ts               # objets inertes du niveau (décor avec ou sans cerveau)
-│   ├── controls/                 # entrées : clavier, souris, plus tard gamepad/WebXR
+│   ├── controls/                 # entrées : capter (clavier, souris, plus tard gamepad/WebXR),
+│   │                             #   traduire en ACTIONS, écrire le champ input de la photo
 │   ├── physics/
 │   │   ├── newton.ts             # poussée, inertie, plafond de vitesse (mission 1 !)
 │   │   ├── collisions.ts         # détection et réponses (impact, dégâts, Whipple)
@@ -107,6 +138,8 @@ src/
 ```
 
 ---
+
+<a id="sec-03"></a>
 
 ## Exemple concret — que contiendrait `levels/data/station-defense.json` ?
 
@@ -156,6 +189,8 @@ src/
 
 ---
 
+<a id="sec-04"></a>
+
 ## `Scene.tsx` — le cadre et la troupe
 
 Le `<Canvas>` (fourni par react-three/fiber) est **LE CADRE** : une zone WebGL dans la page — un rectangle avec un moteur de rendu, une caméra, le branchement de la boucle d'affichage. Seul, il affiche un écran noir vide. `Scene.tsx` fait la seconde moitié du travail : **placer dans le cadre le décor, les acteurs et les effets** — sans connaître aucun niveau ni mode :
@@ -179,6 +214,8 @@ function Scene() {
 
 ---
 
+<a id="sec-05"></a>
+
 ## `game/core` — le cœur, et le tour d'une frame
 
 - **`loop.ts` = l'horloge** (QUAND) : elle bat à pas fixe — le même `dt` sur toute machine, même quand le navigateur cale. Ce qu'elle appelle à chaque battement, c'est l'ancien `update(dt)` du canvas, découpé en organes (newton, collisions, IA).
@@ -197,12 +234,14 @@ loop (le cœur bat, pas fixe)
 
 ---
 
+<a id="sec-06"></a>
+
 ## Qui rafraîchit l'écran ? — le bouton et la machine
 
 Personne dans notre code n'écrit jamais "affiche maintenant". Le rafraîchissement est une chaîne à trois étages :
 
-1. **Le navigateur** — l'écran se repeint ~60 fois/seconde ; il fournit `requestAnimationFrame` : *"donne-moi une fonction, je l'appellerai à chaque rafraîchissement"*. La prise électrique de tout jeu web.
-2. **La boucle de RENDU du `<Canvas>` (r3f) — invisible, dans `node_modules`.** Le `<Canvas>` écrit dans `Scene.tsx` est **le bouton** : trois lignes qui installent un objet, à l'endroit de notre choix — comme poser un interrupteur. La **machine** qu'il installe (moteur three.js, caméra, boucle branchée sur `requestAnimationFrame`) vit dans la bibliothèque : à chaque frame, elle appelle tous les `useFrame` puis **redessine TOUT, mécaniquement, pour toujours**. On ne possèdera jamais cette boucle — on possède l'endroit où le cadre s'installe et la troupe qu'on y monte.
+1. **Le navigateur** — l'écran se repeint à son rythme propre (souvent ~60 fois/seconde, mais 120-144 sur un écran à haut rafraîchissement — rAF suit l'écran, quel que soit son rythme) ; il fournit `requestAnimationFrame` : *"donne-moi une fonction, je l'appellerai à chaque rafraîchissement"*. La prise électrique de tout jeu web.
+2. **La boucle de RENDU du `<Canvas>` (r3f) — invisible, dans `node_modules`.** Le `<Canvas>` écrit dans `Scene.tsx` est **le bouton** : trois lignes qui installent un objet, à l'endroit de notre choix — comme poser un interrupteur. La **machine** qu'il installe (moteur three.js, caméra, boucle branchée sur `requestAnimationFrame`) vit dans la bibliothèque : à chaque frame, elle appelle tous les `useFrame` puis **redessine TOUT, mécaniquement, pour toujours**. On ne possédera jamais cette boucle — on possède l'endroit où le cadre s'installe et la troupe qu'on y monte.
 3. **Notre boucle de JEU (`loop.ts`)** — le cœur à pas fixe, branché dans la première par le seul point de contact :
 
 ```tsx
@@ -215,6 +254,8 @@ function GameLoop() {
 
 **Deux boucles, pas une** : le rendu (rythme de l'écran, automatique, à la bibliothèque) et le jeu (pas fixe, à nous) — la seconde s'exécute à l'intérieur de la première. Parfois la boucle de jeu jouera deux battements entre deux images, parfois aucun : peu importe, la physique ne dépend jamais du hasard des machines.
 
+**Un seul useFrame qui touche au monde, autant que nécessaire qui l'affichent.** `GameLoop` est l'unique crochet du côté JEU. Les miroirs (`Entities.tsx`, `CameraRig.tsx`…) ont leurs **propres** `useFrame` de rendu — légitimes, puisque le miroir est du React : ils ne font que lire la photo et recopier vers three.js. Test infaillible : *coupe le composant ; si le jeu continue de vivre, c'est un miroir.* Et **l'ordre dans `Scene.tsx` compte** : r3f appelle les `useFrame` dans l'ordre de montage — `GameLoop` se monte **en premier**, les miroirs ensuite : le monde avance d'abord, on le photographie ensuite (l'image affichée est toujours celle de CETTE frame).
+
 Conséquence : *"le miroir relit la photo"* n'est pas un événement que quelqu'un lance — comme tout est redessiné à chaque frame, l'affichage est **toujours** l'image de la photo à l'instant présent. La relecture n'est pas une action, c'est une conséquence.
 
 | Qui | Quoi | Où ça vit |
@@ -224,6 +265,170 @@ Conséquence : *"le miroir relit la photo"* n'est pas un événement que quelqu'
 | `loop.tick()` | la boucle de *jeu* à pas fixe : faire agir les acteurs | **notre code**, branché via `useFrame` |
 
 ---
+
+<a id="sec-07"></a>
+
+## `state.ts` — où vivent les propriétés, et comment le 3D les relit
+
+**Règle : la photo détient les données, l'acteur détient le comportement.** Un objet, deux moitiés — dans des fichiers séparés, délibérément.
+
+- **L'acteur** (`entities/`) est le comportement : ses méthodes écrivent dans la photo. Il sait où est son état : dans `state.ts`.
+- **La photo** (`state.ts`) est l'état de TOUS les objets à l'instant T : positions, vitesses, angles, score, phase — la **source de vérité unique**.
+- **Les propriétés d'un objet se trouvent donc à UN seul endroit : `state.ts`.** Jamais dans l'entité, jamais dans un composant.
+
+Pourquoi couper l'objet en deux ? (choix délibéré, pas un accident)
+
+1. **Sauvegarder le monde tient en une ligne** : `JSON.stringify(state)` — sauvegarde complète, replay, futur multi.
+2. **Le miroir a UN endroit à lire** — il ne connaît ni les acteurs, ni leurs méthodes.
+3. **Le cœur reste pur** : loop, state, acteurs = du TypeScript simple, zéro Three.js, zéro React.
+
+Les contrats : **une interface par espèce** (dans `types/`), importée par l'acteur comme par le miroir — c'est le pont entre les deux moitiés. Une interface ne détient ni données ni code : elle garantit que la photo de cette espèce a toujours cette forme-là ; ajouter un champ au contrat, et TypeScript signale partout où il faut s'adapter.
+
+```
+// state.ts — la photo : des listes par espèce, rien d'autre. Aucune méthode.
+ships: [] as Ship[],
+asteroids: [] as Asteroid[],
+planets: [] as Planet[]
+```
+
+**Quatre disciplines qui vont avec :**
+
+1. **La photo ne fait rien** : aucun helper, aucune méthode dedans. Faire naître un objet = `spawn()` dans SON entité, qui pousse la fiche dans SA liste.
+2. **Chaque espèce ne touche que sa propre liste** : `NpcShip` écrit dans `npcs`, jamais dans `projectiles`. L'exception assumée : les systèmes multi-espèces (collisions) — des *systèmes*, pas des acteurs.
+3. **Un miroir par espèce, pas par objet** : `Entities` lit les listes de la photo et monte une maquette par fiche — 500 astéroïdes = une liste, un miroir.
+4. **Pas de fiche, pas de miroir** : un décor immobile n'a pas de propriétés vivantes — il est dessiné une fois, point.
+
+Exemple — la naissance, le vol et l'affichage d'un ennemi :
+
+```ts
+// types/ — le contrat de l'espèce NpcShip : la forme de sa fiche. Le pont entre les deux moitiés.
+export interface NpcSheet {
+  position: Vec3;
+  velocity: Vec3;
+  hp: number;
+  alive: boolean;
+}
+
+// state.ts — la photo : SA liste, typée par le contrat. Rien d'autre.
+npcs: [] as NpcSheet[],
+
+// entities/NpcShip.ts — L'ACTEUR : spawn dans son fichier, écrit dans SA liste à chaque update.
+export function spawnNpc(position: Vec3) {
+  state.npcs.push({ position, velocity: { x: 0, y: 0, z: -2 }, hp: 3, alive: true });
+}
+
+export function updateNpcs(dt: number) {
+  for (const npc of state.npcs) {
+    if (!npc.alive) continue;
+    npc.position.x += npc.velocity.x * dt;  // l'acteur ÉCRIT la photo — c'est tout son métier
+    npc.position.z += npc.velocity.z * dt;
+  }
+}
+
+// components/game/Entities.tsx — LE MIROIR : il ne calcule rien, il RECOPIE la photo.
+useFrame(() => {
+  for (const npc of state.npcs) {
+    const mesh = meshes.get(npc);            // une maquette par fiche
+    mesh.position.set(npc.position.x, npc.position.y, npc.position.z);
+  }
+});
+```
+
+À lire : l'ennemi naît (`spawnNpc`), vit (`updateNpcs` écrit la photo), s'affiche (le miroir recopie) — **et les trois fichiers ne se connaissent que par le contrat et la photo**. Tuer l'ennemi plus tard : `npc.alive = false` dans la photo, le miroir masque la maquette, et le carrefour (section suivante) annonce la mort à qui veut l'entendre.
+
+**Comment le 3D les relit ? (le miroir)** — `Entities` (le miroir) fait exactement une chose à chaque frame, dans son `useFrame` : **recopier** — lire la photo, coller les valeurs dans les objets three.js. Il ne calcule rien, ne décide rien. Comme tout est redessiné à chaque frame, l'affichage est toujours l'image de la photo à l'instant présent (voir « Qui rafraîchit l'écran ? »).
+
+⚠️ **Dans un miroir, aucune écriture dans la photo** — que des lectures et des `.set()` sur les objets three.js. Un `+=`, un `if (hp <= 0)` de gameplay dans un `useFrame` de miroir = bug d'architecture : retourne dans `game/`.
+
+La chaîne, toujours la même phrase :
+
+> Le loop réveille les acteurs ; les acteurs écrivent dans la photo ; le miroir recopie ; r3f peint.
+
+---
+
+<a id="sec-08"></a>
+
+## `game/core/events.ts` — le carrefour des événements
+
+**Le problème qu'il résout.** Quand un événement important arrive dans le monde — un vaisseau meurt, un missile touche, le joueur entre dans une zone — plusieurs modules veulent réagir : le score, les effets visuels, le script de mission. Sans carrefour, l'annonceur devrait tous les connaître et les appeler un par un ; chaque module nouveau obligerait à retoucher le code de l'annonceur. Le carrefour inverse le lien : **celui qui annonce ne connaît pas ceux qui écoutent.** C'est le principe de l'EventDispatcher de Symfony : publier / s'abonner.
+
+```ts
+// events.ts — publier / s'abonner : l'annonceur ne connaît jamais les oreilles.
+export type GameEvent =
+  | { type: "enemy:death"; position: Vec3; points: number }
+  | { type: "player:hit"; damage: number }
+  | { type: "trigger"; zone: string };
+
+const listeners: ((e: GameEvent) => void)[] = [];
+
+export function on(fn: (e: GameEvent) => void) { listeners.push(fn); }   // s'abonner
+export function emit(e: GameEvent) { for (const fn of listeners) fn(e); } // publier
+```
+
+Exemple — la mort d'un ennemi :
+
+```ts
+// NpcShip.ts — L'ANNONCEUR : il écrit la photo d'abord, puis publie. C'est tout.
+if (this.hp <= 0) {
+  this.alive = false;   // la photo d'abord (la vérité du monde)
+  emit({ type: "enemy:death", position: this.position, points: 100 });
+}
+
+// Trois OREILLES, chacune dans SON fichier, aucune ne connaît NpcShip :
+on(e => { if (e.type === "enemy:death") state.score += e.points; });            // le score
+on(e => { if (e.type === "enemy:death") spawnExplosion(e.position); });         // les effets
+on(e => { if (e.type === "enemy:death") mission.complete("destroy-patrol"); }); // le script de mission
+```
+
+**Règles du carrefour :**
+
+1. **`on()` s'écrit une fois** — au montage du jeu, jamais par objet ni par ennemi. `emit` est appelé autant de fois qu'il y a d'événements : 3 oreilles abonnées, 50 morts = 150 exécutions d'oreilles, sans une ligne de plus à écrire.
+2. **L'annonceur écrit la photo d'abord, publie ensuite.** L'événement transporte l'information minimale (position, points) — jamais l'objet entier.
+3. **Les événements du monde ne sont pas les touches du clavier** : les entrées du joueur vivent dans `controls/` (section suivante). `events.ts` distribue ce que le MONDE annonce : mort, impact, trigger.
+4. **Les scripts de mission (`game/missions/`) sont de grosses oreilles** : leurs déclencheurs ("quand la patrouille est détruite…") s'abonnent au carrefour — c'est la "machine à événements" annoncée dans l'arbre. Ajouter un module qui réagit (audio, succès, replays) = une oreille de plus dans SON fichier, l'annonceur ne bouge pas d'une ligne.
+
+---
+
+<a id="sec-09"></a>
+
+## `game/controls/` — les entrées : capter, traduire, écrire
+
+Le métier de `controls/` tient en trois verbes : **capter** (le clavier, la souris, plus tard le gamepad et la VR), **traduire** (des périphériques en *actions* : `thrust`, `fire` — jamais "flèche du haut"), **écrire** (l'état des actions dans la photo, champ `input`).
+
+```ts
+// controls/index.ts — tous les périphériques parlent "actions",
+// le jeu ne voit jamais le matériel.
+import { state } from "../core/state";
+
+export function attachControls() {          // appelé UNE seule fois, au montage
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "ArrowUp" || e.code === "KeyW") state.input.thrust = true;
+    if (e.code === "Space") state.input.fire = true;
+  });
+  window.addEventListener("keyup", (e) => {
+    if (e.code === "ArrowUp" || e.code === "KeyW") state.input.thrust = false;
+    if (e.code === "Space") state.input.fire = false;
+  });
+  // plus tard : gamepad, WebXR — mêmes actions, même champ input.
+}
+```
+
+Et la contrepartie dans la photo :
+
+```ts
+// state.ts — le champ input : des ACTIONS, pas des boutons.
+input: { thrust: false, fire: false }
+```
+
+**Trois règles des entrées :**
+
+1. **Sens unique** : `controls/` est le SEUL écrivain du champ `input` ; les acteurs (`PlayerShip`) ne font que le lire à leur tour de réveil. `PlayerShip` ne sait pas qu'un clavier existe — gamepad et VR passeront par `controls/` sans la toucher.
+2. **Personne n'appelle `controls/` dans la boucle** : c'est le navigateur qui appelle les listeners au moment où la touche est pressée — n'importe quand, y compris entre deux battements. La photo sert d'intermédiaire : le monde lit les commandes aux pas fixes, à un moment où il est stable.
+3. **Un périphérique de plus = un fichier ici, rien ailleurs.** La traduction vit tout entière dans `controls/` — déjà acté pour la VR : *"`controls/` gagne une entrée WebXR ; le reste ne sait même pas que ça existe"*.
+
+---
+
+<a id="sec-10"></a>
 
 ## Le fond du monde — `environment/` en trois exemples
 
@@ -256,6 +461,8 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 
 ---
 
+<a id="sec-11"></a>
+
 ## Où va quoi — le tableau de correspondance
 
 | Besoin | Destination |
@@ -264,6 +471,7 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 | Un menu, un écran (accueil, pause, options) | `components/ui/menus/` |
 | Un élément en jeu (radar, réticule, vitesse, flèches) | `components/ui/hud/` |
 | Une maquette 3D (vaisseau, missile, station, épave) | `components/game/models/` — réutilisable par toute faction |
+| Afficher les entités vivantes (le miroir : recopier la photo vers three.js) | `components/game/Entities.tsx` — un miroir par espèce, jamais par objet |
 | Un acteur logique (joueur, PNJ, projectile, accessoire) | `game/entities/` — référence un modèle |
 | Un comportement d'arme (guidage, balistique) | `game/weapons/` (code) ; la variante précise = réglages JSON |
 | Un cerveau d'objet (tourelle, patrouilleur) | `game/levels/brains/`, référencé par le JSON du niveau |
@@ -274,6 +482,8 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 | Le scénario d'une mission | `game/missions/` |
 | Un type partagé | `types/` |
 
+<a id="sec-12"></a>
+
 ## Règles de circulation
 
 1. **`app/` importe depuis `components/` et `game/` ; personne n'importe depuis `app/`.**
@@ -281,6 +491,8 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 3. **Aucune logique dans une maquette, aucun visuel dans une entité** : `models/` ne décide rien, `entities/` n'affichent rien. Le lien entre les deux est une référence (`model: "falcon-mk2"`).
 4. **Pas de dossier par niveau, pas de boucle par niveau** : un niveau = un JSON + éventuellement un cerveau de mission. Toute ressemblance entre deux niveaux = données partagées, jamais code copié.
 5. Un niveau qui a besoin de code custom = un champ `"script"` dans son JSON qui référence `game/missions/`.
+
+<a id="sec-13"></a>
 
 ## Les contradictions futures, déjà tranchées
 
@@ -295,9 +507,13 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 - **Éditeur de niveaux futur** : une page `app/editor/` qui lit et écrit des JSON de `game/levels/data/` — l'architecture le rend presque gratuit.
 - **VR future** : `controls/` gagne une entrée WebXR ; le reste ne sait même pas que ça existe.
 
+<a id="sec-14"></a>
+
 ## La démo Terre 2065 — statut
 
 Démo historique générée automatiquement (2 fichiers : `app/terre2065/page.tsx` + `components/Terre2065.tsx`), conservée **telle quelle** comme référence visuelle, amenée à disparaître quand `/play` l'aura rattrapée. Elle n'est **pas** une référence d'architecture : tout nouveau code suit la cible ci-dessus, sans renommage ni maintenance de la démo. Plan d'exécution et calendrier : voir `JOURNAL.md`.
+
+<a id="sec-15"></a>
 
 ## Ce qui n'existe PAS encore (et c'est voulu)
 
@@ -305,4 +521,4 @@ Multi (serveur), éditeur de niveaux, sauvegardes, VR : aucun dossier. Ils viend
 
 ---
 
-*Dernière mise à jour : 7 nov. 2026. Toute évolution de la structure se note ici AVANT d'être codée.*
+*Dernière mise à jour : 8 nov. 2026. Toute évolution de la structure se note ici AVANT d'être codée.*
