@@ -73,3 +73,39 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : MISSION 0, pas 1 restant — fond noir + `OrbitControls` dans `Scene.tsx` (vérification : écran noir que l'on peut orbiter sur `localhost:3000/play`) ; puis pas 3 (`environment/Space/` + `Stars.tsx`), à la demande.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-09 — Session 8 (suite) : fond noir plein écran + pas 3, les étoiles (Space/)
+
+**Fait** : `Scene.tsx` — `<Canvas style={{ width: "100vw", height: "100vh" }}>` (le conteneur r3f est en 100%×100% d'un parent sans hauteur définie : `min-h-full` ne suffit pas, le `height: 100%` retombait à `auto` → canvas réduit à une petite bande) + `<color attach="background" args={["#000000"]} />` en placeholder. `environment/Space/index.tsx` (le chef) + `environment/Space/Stars.tsx` (`<Stars>` de drei tel quel, importé sous l'alias `DreiStars`) créés et branchés dans `Scene`. Vérifié : `tsc --noEmit` sans erreur hors démo/layout ; `GET /play` → 200 ; les chunks servis contiennent le code Space/Stars (`StarfieldMaterial`). `globals.css` : lignes de debug retirées par Thierry, retour à l'état d'origine. Q/R : r3f enregistre tout `THREE` comme balises JSX (`extend(THREE)`), `args` = arguments du constructeur, `attach` = branche l'objet sur une propriété du parent ; le `style` de `<Canvas>` écrase le `100%×100%` par défaut du conteneur.
+
+**Appris / incidents** : rien de cassé. Le `body` fait bien toute la hauteur *visuellement* (`min-h-full`) mais sa hauteur calculée reste `auto` — d'où le canvas effondré. Le serveur dev orphelin occupe toujours le port 3000 dans cet environnement (il sert correctement la page).
+
+**Prochaine étape** : finir le pas 1 — `<OrbitControls />` (drei, 2 lignes) dans `Scene.tsx` ; vérification visuelle : orbiter le champ d'étoiles sur `localhost:3000/play`. Puis pas 4 (`environment/Sun.tsx`).
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-09 — Session 8 (suite 2) : le fond noir déménage dans Space/Void.tsx
+
+**Fait** : `environment/Space/Void.tsx` créé (couche 1 : `<color attach="background">` noir) ; `Space/index.tsx` assemble `<Void />` + `<Stars />` ; `Scene.tsx` ne contient plus aucun décor en dur, seulement `<Space />` + `<GameLoop />`. Vérifié : `tsc --noEmit` sans erreur hors démo/layout ; `GET /play` → 200 ; le chunk servi contient `Space/Void` + `Space/Stars`.
+
+**Appris / incidents** : rien de cassé. Le placeholder `<color>` de `Scene` a tenu son rôle : poser le minimum vérifiable, puis le déplacer à sa place (Void) dès que la couche existait.
+
+**Prochaine étape** : `<OrbitControls />` (drei, 2 lignes) dans `Scene.tsx` — vérification visuelle : orbiter le champ d'étoiles. Puis pas 4 (`environment/Sun.tsx`).
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-09 — Session 8 (suite 3) : étoiles rondes et statiques (fade, speed=0)
+
+**Fait** : correction des deux artefacts visuels de `<Stars>` de drei, appliquée par Thierry dans `Space/Stars.tsx` : `<DreiStars fade speed={0} />`. Vérifié : `tsc --noEmit` sans erreur hors démo/layout ; `GET /play` → 200.
+
+**Appris / incidents** : le shader de drei rend des points **carrés** par défaut (le dégradé radial ne s'applique que si `fade == 1.0`) et fait **pulser la taille de toutes les étoiles en synchronisation** (`gl_PointSize = size * (3 + sin(time + 100))`, période ≈ 6,3 s à `speed = 1` ; en `AdditiveBlending`, quand les points rétrécissent l'image s'assombrit). `fade` + `speed={0}` = étoiles rondes et immobiles — conforme au but « simuler la physique, pas l'inventer » et à la vérification du pas 3. Leçon : les réglages par défaut de drei sont orientés démo — lire les props du composant qu'on enrobe avant de s'en servir.
+
+**Prochaine étape** : `<OrbitControls />` (drei, 2 lignes) dans `Scene.tsx` — vérification visuelle : orbiter le champ d'étoiles sur `localhost:3000/play`. Puis pas 4 (`environment/Sun.tsx` : `directionalLight` + halo).
+
+**Règle du projet** : une session = une victoire.
