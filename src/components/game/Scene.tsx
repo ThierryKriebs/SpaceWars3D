@@ -16,8 +16,14 @@ function GameLoop() {
 
 export default function Scene() {
   return (
-    <Canvas>
+     // style overrides the container's default width/height: 100% and pins
+    // the canvas to the viewport (its parent has no definite height).
+    <Canvas style={{ width: "100vw", height: "100vh" }}>
+      {/* scene.background: the black backdrop painted behind everything */}color: r3f rend toutes les classes de Three.js automatquement disponibles
+      {/* color: r3f automatically makes all Three.js classes available */}
+      <color attach="background" args={["#000000"]} />
       <GameLoop />
     </Canvas>
+   
   );
 }
