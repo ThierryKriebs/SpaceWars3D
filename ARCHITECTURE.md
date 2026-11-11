@@ -23,12 +23,13 @@ La carte du chantier : qui va où, et pourquoi. Les dossiers naissent quand leur
 12. [`game/capabilities/`](#sec-12) — les capacités (ex-ai/) : voir (cônes, raycast), esquiver, se battre — les rôles nommés assemblent.
 13. [`levels/`](#sec-13) — le plateau : `data/` (les niveaux JSON), `roles/` (ex-brains/ : les rôles nommés), `index.ts` (le régisseur) — un niveau se décrit, il ne se code plus.
 14. [`missions/`](#sec-14) — le déroulé : des scripts-oreilles au carrefour — déclencheurs → dialogues, spawns. Le niveau installe, la mission raconte.
-15. [Le fond du monde](#sec-15) — l'environnement en trois exemples.
-16. [Où va quoi](#sec-16) — le tableau de correspondance.
-17. [Règles de circulation](#sec-17) — les imports et leurs sens uniques.
-18. [Les contradictions futures, déjà tranchées](#sec-18) — les débats clos d'avance.
-19. [La démo Terre 2065](#sec-19) — son statut de référence visuelle.
-20. [Ce qui n'existe pas encore](#sec-20) — et pourquoi c'est voulu.
+15. [`types/`](#sec-15) — le dictionnaire : les contrats partagés — un barrel (`index.ts`), des fichiers par genre ; Zod aux portes, le jour de l'éditeur.
+16. [Le fond du monde](#sec-16) — l'environnement en trois exemples.
+17. [Où va quoi](#sec-17) — le tableau de correspondance.
+18. [Règles de circulation](#sec-18) — les imports et leurs sens uniques.
+19. [Les contradictions futures, déjà tranchées](#sec-19) — les débats clos d'avance.
+20. [La démo Terre 2065](#sec-20) — son statut de référence visuelle.
+21. [Ce qui n'existe pas encore](#sec-21) — et pourquoi c'est voulu.
 
 ---
 
@@ -121,6 +122,8 @@ src/
 │   │   └── Prop.ts               # objets inertes du niveau (décor avec ou sans cerveau)
 │   ├── controls/                 # entrées : capter (clavier, souris, plus tard gamepad/WebXR),
 │   │                             #   traduire en ACTIONS, écrire le champ input de la photo
+│   │   ├── keyboard.ts           # ex. : le clavier (touches → intentions)
+│   │   └── mouse.ts              # ex. : la souris (visée, clic maintenu → intentions)
 │   ├── physics/
 │   │   ├── newton.ts             # L'INTÉGRATEUR : poussée, inertie, plafond, frein, boost, rotation inertielle amortie — LUI SEUL écrit position (mission 1 !)
 │   │   ├── collisions.ts         # L'ARBITRE multi-espèces : grossier d'abord, dégâts + carrefour ensuite — jamais la mort
@@ -128,10 +131,14 @@ src/
 │   ├── weapons/                  # COMPORTEMENTS d'armes : droite, guidé, verrouillé… (code) — PAS des
 │                                 #   entités : pas de fiche dans la photo, jamais réveillées par la boucle ;
 │                                 #   référencées par les fiches des vaisseaux (le projectile, lui, EST une entité)
+│   │   ├── plasma-cannon.ts      # ex. : le tir droit (joueur ET ennemis — même arme)
+│   │   └── homing-missile.ts     # ex. : le missile guidé (verrouille une cible)
 │   ├── capabilities/             # CAPACITÉS (ex-ai/) : voir (cônes, raycast), esquiver, se
 │                                 #   battre (as) — les RÔLES nommés vivent dans levels/roles/ ;
 │                                 #   un cerveau ne connaît que la photo : il lit, écrit des
 │                                 #   intentions, newton exécute (équité : l'IA ne triche pas)
+│   │   ├── detect.ts             # ex. : voir — cônes, sphères radar, raycast
+│   │   └── evade.ts              # ex. : esquiver — drifts, loopings (le cœur des as)
 │   ├── levels/                   # LE PLATEAU : qui se trouve où au lever de rideau (état initial)
 │   │   ├── index.ts              # chargeur : lit un JSON → instancie entités et décors
 │   │   ├── data/                 # NIVEAUX = DONNÉES (JSON) : objets, positions, rôles
@@ -143,9 +150,17 @@ src/
 │   └── missions/                 # LE DÉROULÉ : scripts-oreilles au carrefour — déclencheurs
 │                                 #   → dialogues, spawns (le niveau installe, la mission raconte)
 │       ├── act0/                        # les missions de l'acte 0 (scripts d'événements)
+│       │   └── earth-orbit-tutorial.ts   # ex. : le tutoriel minier
 │       └── act3/                        # les missions de l'acte 3
+│           └── station-defense.ts        # ex. : la défense de station
 │
-└── types/                        # types TypeScript partagés (Entity, LevelData, ShipConfig...)
+└── types/                        # LE DICTIONNAIRE : les contrats TypeScript partagés —
+    ├── index.ts                 # LE BARREL : la porte unique (importe tout, exporte tout)
+    ├── sheets.ts                # ex. : les fiches (ShipSheet, NpcSheet, ProjectileSheet…)
+    ├── intents.ts               # ex. : les intentions (InputIntent — thrust, yaw… des 0-1)
+    └── events.ts                # ex. : les événements du carrefour (GameEvent)
+                                 #   ; Zod aux portes le jour de l'éditeur (schémas ici,
+                                 #   validation dans le chargeur)
 ```
 
 ---
@@ -658,7 +673,7 @@ export function loadLevel(name: string) {
 }
 ```
 
-Ce qu'il ne fait PAS : il ne décide aucun comportement (il monte ceux qui sont référencés), il n'affiche rien (le miroir), il ne fait tourner aucune règle (newton, collisions). **Il assemble** — un régisseur qui installe les décors et distribue les rôles avant le lever de rideau. Et il est appelé UNE fois par niveau, jamais dans la boucle : un organe de coulisses, pas de la scène.
+Ce qu'il ne fait PAS : il ne décide aucun comportement (il monte ceux qui sont référencés), il n'affiche rien (le miroir), il ne fait tourner aucune règle (newton, collisions). **Il assemble** — un régisseur qui installe les décors et distribue les rôles avant le lever de rideau. Et il est appelé UNE fois par niveau, jamais dans la boucle : un organe de coulisses, pas de la scène. Sa seule garde future : le jour de l'éditeur de niveaux, c'est LUI qui validera les JSON à la porte (voir `types/` — Zod).
 
 **`data/` — l'état au lever de rideau.** Un niveau = des valeurs : objets, positions, rôles montés, armes, déclencheurs, preset d'environnement. Le bénéfice est déjà dans la feuille de route : ce JSON est exactement ce que **l'éditeur de niveaux intégré** (évolution n°1) importera et exportera — le jour de l'éditeur, on ne code rien de nouveau : on fabrique un outil qui ÉCRIT ces JSON.
 
@@ -740,7 +755,48 @@ le récit                      : jamais dans le code des acteurs — dans les sc
 
 ---
 
+
 <a id="sec-15"></a>
+
+## `types/` — le dictionnaire : les contrats partagés
+
+`types/` ne contient **ni comportement, ni donnée, ni affichage** : le dictionnaire du projet. Des contrats — des formes déclarées, jamais du code qui s'exécute. Et pourtant tout le monde s'en sert :
+
+1. **Les références deviennent sûres.** Les fiches référencent maquettes, rôles et canons **par des chaînes** (`"plasma-cannon"`). Le risque du libre-échange est la faute de frappe : `"plasma-canon"` et le canon ne tire jamais, sans erreur visible. Les types vérifient que tous les tiroirs se parlent sans se tromper de nom.
+2. **Les serments deviennent exécutables.** *"Un cerveau ne connaît que la photo"*, *"`game/` ne touche ni React ni three.js"* : typés, ce sont des erreurs de compilation, plus des bugs de production.
+3. **Une seule vérité par forme.** La fiche d'un NPC est écrite par `levels/`, lue par `entities/`, recopiée par le miroir, arbitrée par `collisions/` — un seul contrat dans `types/`, personne ne le réinvente. L'anneau Symfony : les **DTO** — les couches ne se connaissent pas, mais parlent la même langue.
+
+**La structure — un barrel, des fichiers par genre** (décision du 9 nov., sur proposition de Thierry : au bout du projet, des dizaines de contrats ; un seul fichier serait un grenier) :
+
+```
+types/
+├── index.ts        # LE BARREL : importe tout, exporte tout — LA PORTE UNIQUE
+├── sheets.ts       # les fiches : ShipSheet, NpcSheet, DecorSheet, ProjectileSheet
+├── intents.ts      # les intentions : InputIntent (thrust, yaw… des valeurs 0-1)
+├── events.ts       # les événements du carrefour : GameEvent ("impact", "enemy:death"…)
+├── weapons.ts      # les contrats d'armes : WeaponBehavior, ProjectileConfig
+├── missions.ts     # les étapes : MissionStep, TriggerCondition, DialogueRef
+└── environment.ts  # les presets : EnvironmentPreset ("near" et ses curseurs)
+```
+
+```ts
+import type { NpcSheet, InputIntent, GameEvent } from "@/types";  // la porte, jamais la fenêtre
+```
+
+**Trois raisons pour un barrel de types** : aucun risque de dépendances circulaires (des types purs ne s'exécutent pas — le piège classique des barrels ne s'applique pas) ; zéro coût au runtime (`import type` est effacé à la compilation : le barrel ne produit pas une ligne de JavaScript) ; le classement par genre suit la carte (chaque fichier = les organes qu'il fait parler).
+
+**Deux garde-fous** : **un seul point d'entrée** — les autres dossiers importent toujours `from "@/types"`, jamais `from "@/types/sheets"` (deux chemins vers le même contrat = le jour du rangement, tout casse) ; **ne pas pré-couper trop fin** — commencer à 3-4 fichiers, ne scinder que quand un fichier devient long à faire défiler.
+
+**Et Zod ? — la validation au runtime, aux portes du monde.** La nuance à bien voir : TypeScript vérifie **à la compilation** ; or le JSON des niveaux est chargé **au runtime** (et demain, importé par l'éditeur ou par un joueur) — un JSON mal formé n'est jamais vu par le compilateur. Zod est exactement le **validator de Symfony pour le JSON** : tu décris le schéma, il valide les données à l'arrivée. Deux règles doctrinales avec :
+
+1. **La validation vit À LA PORTE** — dans le chargeur (`levels/index.ts`) : les données n'entrent pas dans la photo sans passe. Jamais éparpillée dans les organes.
+2. **Le jour venu, le schéma EST le contrat** : Zod génère le type TypeScript depuis le schéma (`z.infer`) — une seule source de vérité, jamais deux définitions à maintenir. Les schémas vivront dans `types/`.
+
+**Quand ?** Verdict tranché le 9 nov. : **pas en v1** — les JSON sont écrits à la main dans le repo, relus par l'auteur ; les types suffisent. **Zod devient quasi obligatoire le jour de l'éditeur de niveaux** (évolution n°1 : importer/exporter des JSON externes). L'architecture l'accueille sans rien casser : un dossier de schémas dans `types/`, un appel de validation dans le chargeur.
+
+---
+
+<a id="sec-16"></a>
 
 ## Le fond du monde — `environment/` en trois exemples
 
@@ -773,7 +829,7 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 
 ---
 
-<a id="sec-16"></a>
+<a id="sec-17"></a>
 
 ## Où va quoi — le tableau de correspondance
 
@@ -792,9 +848,9 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 | L'IA de vol (voir, esquiver, se battre) | `game/capabilities/` (ex-ai/) — les CAPACITÉS ; le rôle nommé vit dans `levels/roles/` |
 | Un niveau entier | `game/levels/data/xxx.json` |
 | Le scénario d'une mission | `game/missions/` |
-| Un type partagé | `types/` |
+| Un type partagé (contrat, interface) | `types/` — tout passe par le barrel `index.ts`, jamais par un fichier de genre en direct |
 
-<a id="sec-17"></a>
+<a id="sec-18"></a>
 
 ## Règles de circulation
 
@@ -804,7 +860,7 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 4. **Pas de dossier par niveau, pas de boucle par niveau** : un niveau = un JSON + éventuellement un cerveau de mission. Toute ressemblance entre deux niveaux = données partagées, jamais code copié.
 5. Un niveau qui a besoin de code custom = un champ `"script"` dans son JSON qui référence `game/missions/`.
 
-<a id="sec-18"></a>
+<a id="sec-19"></a>
 
 ## Les contradictions futures, déjà tranchées
 
@@ -815,6 +871,7 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 - **Rotation des vaisseaux** : inertielle comme la translation (vitesse angulaire dans la photo, la commande est un couple) mais amortie par des stabilisateurs — `angularDamping`, curseur PAR VAISSEAU dans le JSON (chasseur vif ↔ capital lourd). Tranché le 9 nov. : ni pirouettes infinies, ni rotation sur rails.
 - **Armes vs entités** : une arme n'est PAS une entité. Le test d'entrée d'`entities/` est la fiche dans la photo (*"naît, vit, peut mourir ?"*), JAMAIS le modèle 3D — un décor a un modèle sans être une entité, un projectile est une entité avec modèle, une arme n'a ni fiche ni modèle à elle. Le canon monté est un comportement référencé par la fiche ; ses canons dessinés vivent dans la maquette du vaisseau ; le projectile qu'il crée est une entité à part entière. Et le jour où un canon devient vivant (tourelle avec hp), il devient une entité qui référence une arme. Tranché le 9 nov.
 - **Rôles nommés vs capacités** (ex-*Cerveaux nommés vs capacités d'IA*) : `levels/roles/` (ex-`brains/`) porte des RÔLES (*où aller*), `game/capabilities/` (ex-`ai/`) porte des SAVOIR-FAIRE (*comment voir, esquiver, se battre*) — un rôle ASSEMBLE des capacités. Test : **référencé par un JSON de niveau → `levels/roles/` ; importé par du code → `game/capabilities/`.** L'IA ne triche jamais : ses esquives sont des intentions que newton exécute (équité jusqu'aux cerveaux) ; les ennemis lointains dorment (tick radius ~60 unités, grossier d'abord). Et Mistral, coéquipière du joueur, pilotera avec les mêmes organes que les ennemis. Tranché le 9 nov.
+- **Zod et la validation runtime** : TypeScript vérifie à la compilation ; le JSON des niveaux, lui, entre au runtime. Verdict : PAS de Zod en v1 (JSON internes, relus par l'auteur) ; il devient quasi obligatoire le jour de l'éditeur (imports externes). Le jour venu : les schémas vivent dans `types/` (le schéma EST le contrat, le type s'en déduit par `z.infer`) et la validation vit DANS le chargeur — les données n'entrent pas dans la photo sans passe. Tranché le 9 nov.
 - **Objets inertes vs interactifs** : même JSON, même chargeur ; la différence est un cerveau référencé. Un décor peut devenir interactif en lui ajoutant un cerveau.
 - **Les soleils multiples (distant / L1 / proche)** : UNE maquette `environment/Sun.tsx` paramétrable + un `preset` par niveau dans le JSON (échelle, éruptions, `heatRadius`). La *menace* (chaleur, radiations, bouclier qui fond) vit dans `game/` comme zone de danger pilotée par `heatRadius` — même mécanisme réutilisable pour l'atmosphère terrestre (friction si trop bas). Le décor affiche, `game/` punit.
 - **Modes de jeu (brevet de pilotage, entraînement, course…) et dizaines de niveaux** : `Scene.tsx` ne contient AUCUN niveau ni mode — c'est le plateau, pas les pièces. Il assemble toujours la même chose (caméra, environnement selon preset, `Entities` qui mappe l'état, effets). Un mode = un JSON de niveau + un script de mission + éventuellement un élément HUD dédié ; ajouter la course ne change pas une ligne de `Scene.tsx`. Si un jour ses parties deviennent des métiers séparés, il devient `Scene/index.tsx` (règle des métiers) — même porte, même rôle.
@@ -822,13 +879,13 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 - **Éditeur de niveaux futur** : une page `app/editor/` qui lit et écrit des JSON de `game/levels/data/` — l'architecture le rend presque gratuit.
 - **VR future** : `controls/` gagne une entrée WebXR ; le reste ne sait même pas que ça existe.
 
-<a id="sec-19"></a>
+<a id="sec-20"></a>
 
 ## La démo Terre 2065 — statut
 
 Démo historique générée automatiquement (2 fichiers : `app/terre2065/page.tsx` + `components/Terre2065.tsx`), conservée **telle quelle** comme référence visuelle, amenée à disparaître quand `/play` l'aura rattrapée. Elle n'est **pas** une référence d'architecture : tout nouveau code suit la cible ci-dessus, sans renommage ni maintenance de la démo. Plan d'exécution et calendrier : voir `JOURNAL.md`.
 
-<a id="sec-20"></a>
+<a id="sec-21"></a>
 
 ## Ce qui n'existe PAS encore (et c'est voulu)
 
