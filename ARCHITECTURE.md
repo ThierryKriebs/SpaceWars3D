@@ -22,12 +22,13 @@ La carte du chantier : qui va où, et pourquoi. Les dossiers naissent quand leur
 11. [`game/weapons/`](#sec-11) — les comportements d'armes : la coque porte, le comportement sert — le projectile, lui, est une entité.
 12. [`game/capabilities/`](#sec-12) — les capacités (ex-ai/) : voir (cônes, raycast), esquiver, se battre — les rôles nommés assemblent.
 13. [`levels/`](#sec-13) — le plateau : `data/` (les niveaux JSON), `roles/` (ex-brains/ : les rôles nommés), `index.ts` (le régisseur) — un niveau se décrit, il ne se code plus.
-14. [Le fond du monde](#sec-14) — l'environnement en trois exemples.
-15. [Où va quoi](#sec-15) — le tableau de correspondance.
-16. [Règles de circulation](#sec-16) — les imports et leurs sens uniques.
-17. [Les contradictions futures, déjà tranchées](#sec-17) — les débats clos d'avance.
-18. [La démo Terre 2065](#sec-18) — son statut de référence visuelle.
-19. [Ce qui n'existe pas encore](#sec-19) — et pourquoi c'est voulu.
+14. [`missions/`](#sec-14) — le déroulé : des scripts-oreilles au carrefour — déclencheurs → dialogues, spawns. Le niveau installe, la mission raconte.
+15. [Le fond du monde](#sec-15) — l'environnement en trois exemples.
+16. [Où va quoi](#sec-16) — le tableau de correspondance.
+17. [Règles de circulation](#sec-17) — les imports et leurs sens uniques.
+18. [Les contradictions futures, déjà tranchées](#sec-18) — les débats clos d'avance.
+19. [La démo Terre 2065](#sec-19) — son statut de référence visuelle.
+20. [Ce qui n'existe pas encore](#sec-20) — et pourquoi c'est voulu.
 
 ---
 
@@ -131,7 +132,7 @@ src/
 │                                 #   battre (as) — les RÔLES nommés vivent dans levels/roles/ ;
 │                                 #   un cerveau ne connaît que la photo : il lit, écrit des
 │                                 #   intentions, newton exécute (équité : l'IA ne triche pas)
-│   ├── levels/
+│   ├── levels/                   # LE PLATEAU : qui se trouve où au lever de rideau (état initial)
 │   │   ├── index.ts              # chargeur : lit un JSON → instancie entités et décors
 │   │   ├── data/                 # NIVEAUX = DONNÉES (JSON) : objets, positions, rôles
 │   │   │   ├── earth-orbit-tutorial.json   # ex. : le tutoriel minier (acte 0)
@@ -139,7 +140,8 @@ src/
 │   │   └── roles/                # rôles nommés (ex-brains/) référencés par les JSON
 │   │       ├── patrol-route.ts          # ex. : ronde de patrouille (waypoints)
 │   │       └── turret-guard.ts          # ex. : tourelle de station (cible + portée)
-│   └── missions/                 # machine à événements : déclencheurs, dialogues, spawns
+│   └── missions/                 # LE DÉROULÉ : scripts-oreilles au carrefour — déclencheurs
+│                                 #   → dialogues, spawns (le niveau installe, la mission raconte)
 │       ├── act0/                        # les missions de l'acte 0 (scripts d'événements)
 │       └── act3/                        # les missions de l'acte 3
 │
@@ -689,11 +691,56 @@ levels/data/xxx.json ──"role": "patrol-route"──▶ levels/roles/ ──i
 
 **Pourquoi `levels/` vit dans `game/` ?** Test habituel : ça ne s'affiche pas (le chargeur instancie, il ne dessine pas) ; ça ne vit pas dans la photo (il la peuple, puis se tait). Logique pure du monde, TypeScript sans React ni three.js → `game/`, serment compris. Bénéfice : le jour d'un test de niveau sans écran (lancer le JSON et vérifier que personne ne meurt dans les 30 premières secondes), il tournera sans Canvas — une répétition sans plateau.
 
-**La frontière avec `missions/`** : `levels/` installe le monde (le plateau : qui et où au lever de rideau) ; `missions/` le fait vivre (le déroulé : déclencheurs, dialogues, spawns). Le niveau installe ; la mission raconte.
+**La frontière avec `missions/`** (section suivante) : `levels/` installe le monde (le plateau : qui et où au lever de rideau) ; `missions/` le fait vivre (le déroulé : déclencheurs, dialogues, spawns). Le niveau installe ; la mission raconte.
 
 ---
 
+
 <a id="sec-14"></a>
+
+## `missions/` — le déroulé : la mission raconte
+
+**Le niveau installe, la mission raconte.** `levels/` = l'état au lever de rideau ; `missions/` = ce qui se passe APRÈS : déclencheurs, dialogues, spawns. `act0/` et `act3/` sont des classeurs de scripts rangés par acte — le tutoriel minier ici, la défense de station là — exactement comme le plan narratif l'organise.
+
+**Un script de mission est une GROSSE OREILLE.** La section `events.ts` l'avait déjà annoncé : *"les scripts de mission sont de grosses oreilles : leurs déclencheurs s'abonnent au carrefour"*. La symétrie avec tout ce qu'on a vu :
+
+| Organe | réveil | métier |
+|---|---|---|
+| un acteur (`NpcShip`) | chaque battement | décider des intentions |
+| la mission | **quand un événement arrive** | décider du récit |
+
+La mission n'est pas un acteur (pas de fiche, elle ne vole pas), pas newton (aucune physique), pas un affichage : **une écoute du monde + une plume de scénariste** — un organe de coulisses, vivant dans le *temps* du niveau, pas seulement à son lever de rideau.
+
+**Le déclencheur — la brique de base : *SI ceci, ALORS cela.***
+
+```ts
+// missions/act3/station-defense.ts — un script de mission, dans les grandes lignes
+on("zone:rendez-vous", () => playDialogue("mistral-intro"));
+on("wave:1:cleared",   () => spawnWave("wave-2"));
+on("cargo:hull<50%",   () => playDialogue("mistral-alerte"));
+on("wave:3:cleared",   () => completeMission());
+```
+
+Chaque ligne : une oreille de plus dans **son** fichier — l'annonceur (`events.ts`) ne bouge pas d'une ligne (déjà acté, section events). Les verbes disponibles (`playDialogue`, `spawnWave`, `completeMission`) sont la petite machine partagée, du code écrit UNE fois ; le script d'une mission ne fait qu'**orchestrer**. Et le contenu des dialogues — les répliques elles-mêmes — reste des **DONNÉES** (fichiers de répliques) : le comportement en code, les paroles en données, la doctrine jusque dans le récit.
+
+**Les dialogues — quand la fiction était déjà une architecture.** Les coéquipiers sont des **voix radio**, jamais vues (Star Fox, *For All Mankind*) : un dialogue de mission n'est *rien* à rendre — un identifiant, un fichier de répliques, une file d'attente. Pas de visage à modéliser, pas de synchro labiale : le choix narratif du 2 nov. était déjà un choix d'architecture. Et l'énigme de réparation (le seul secours = demander à l'IA que Sterck déteste) est exactement un trigger : *SI "Aidez-moi" pressé, ALORS l'indice se débloque.* **Écriture par les mécanismes** : la machine à événements EST l'outil d'auteur.
+
+**Les spawns — la mission fait naître, sans jamais fabriquer.** Le régisseur (`levels/index.ts`) avait peuplé le monde une fois ; la mission le re-peuple en cours de route — et proprement : elle ne crée rien elle-même, elle demande au **même chargeur** de servir une vague prédéfinie (les vagues = des données, un niveau en miniature). Un seul outil qui fait naître, deux moments pour l'appeler : lever de rideau, surprises en cours de récit.
+
+**Sa place dans le grand schéma** — la mission est la seule oreille qui regarde le monde d'en haut :
+
+```
+le plateau (levels)           : qui et où à t=0
+le monde (acteurs + physics)  : vit à chaque battement, annonce au carrefour
+la mission (missions)         : ÉCOUTE le carrefour → déclenche dialogues et spawns
+le récit                      : jamais dans le code des acteurs — dans les scripts et les données
+```
+
+**Le test habituel** : ça ne s'affiche pas (un dialogue se *joue* — rien à dessiner de plus qu'une interface radio), ça ne vole pas, ça ne règle aucune physique — la logique du récit, TypeScript pur sans three.js → `game/`, serment intact. Et demain, les arcs dynamiques (*"si le joueur a refusé l'aide de Mistral trois fois, la réplique change"*) = des conditions de plus dans le script, pas une ligne de moteur.
+
+---
+
+<a id="sec-15"></a>
 
 ## Le fond du monde — `environment/` en trois exemples
 
@@ -726,7 +773,7 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 
 ---
 
-<a id="sec-15"></a>
+<a id="sec-16"></a>
 
 ## Où va quoi — le tableau de correspondance
 
@@ -747,7 +794,7 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 | Le scénario d'une mission | `game/missions/` |
 | Un type partagé | `types/` |
 
-<a id="sec-16"></a>
+<a id="sec-17"></a>
 
 ## Règles de circulation
 
@@ -757,7 +804,7 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 4. **Pas de dossier par niveau, pas de boucle par niveau** : un niveau = un JSON + éventuellement un cerveau de mission. Toute ressemblance entre deux niveaux = données partagées, jamais code copié.
 5. Un niveau qui a besoin de code custom = un champ `"script"` dans son JSON qui référence `game/missions/`.
 
-<a id="sec-17"></a>
+<a id="sec-18"></a>
 
 ## Les contradictions futures, déjà tranchées
 
@@ -775,13 +822,13 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 - **Éditeur de niveaux futur** : une page `app/editor/` qui lit et écrit des JSON de `game/levels/data/` — l'architecture le rend presque gratuit.
 - **VR future** : `controls/` gagne une entrée WebXR ; le reste ne sait même pas que ça existe.
 
-<a id="sec-18"></a>
+<a id="sec-19"></a>
 
 ## La démo Terre 2065 — statut
 
 Démo historique générée automatiquement (2 fichiers : `app/terre2065/page.tsx` + `components/Terre2065.tsx`), conservée **telle quelle** comme référence visuelle, amenée à disparaître quand `/play` l'aura rattrapée. Elle n'est **pas** une référence d'architecture : tout nouveau code suit la cible ci-dessus, sans renommage ni maintenance de la démo. Plan d'exécution et calendrier : voir `JOURNAL.md`.
 
-<a id="sec-19"></a>
+<a id="sec-20"></a>
 
 ## Ce qui n'existe PAS encore (et c'est voulu)
 
