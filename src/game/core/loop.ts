@@ -2,6 +2,7 @@
 import { state } from "./state";
 import { spawnPlayer, updatePlayer } from "../entities/PlayerShip";
 import { updateShips } from "../physics/newton";
+import { attachKeyboard } from "../controls/keyboard";
 
 // One tick = 1/60 s of real time, on every machine.
 export const STEP = 1 / 60;
@@ -16,6 +17,7 @@ export const Loop = {
     // One-time setup on the very first call: spawn the player into the photo.
     if (!Loop.started) {
       Loop.started = true;
+      attachKeyboard(); // controls capture once, at mount
       spawnPlayer();
     }
     Loop.accumulator += delta;
@@ -25,8 +27,9 @@ export const Loop = {
       updatePlayer(); // the actors decide: intentions into the photo
       updateShips(STEP); // newton executes: the only writer of position
       if (state.tickCount % 60 === 0) {
-        const p = state.ships[0]?.position;
-        console.log(`[GameLoop] tick #${state.tickCount}, ship at (${p?.x.toFixed(2)}, ${p?.y.toFixed(2)}, ${p?.z.toFixed(2)})`);
+        const s = state.ships[0];
+        const p = s?.position;
+        console.log(`[GameLoop] tick #${state.tickCount}, ship at (${p?.x.toFixed(2)}, ${p?.y.toFixed(2)}, ${p?.z.toFixed(2)}), vz=${s?.velocity.z.toFixed(2)}`);
       }
     }
   },
