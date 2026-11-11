@@ -6,6 +6,7 @@ import { OrbitControls } from "@react-three/drei";
 import { Loop } from "@/game/core/loop";
 
 import { Space } from "./environment/Space";
+import { Sun } from "./environment/Sun";
 
 // The single hook between our game world and r3f's render loop:
 // r3f calls this on every frame, we run the fixed-step game ticks.
@@ -27,6 +28,7 @@ export default function Scene() {
           it will be replaced later by our own CameraRig. */}
       <OrbitControls />
       <Space />
+      <Sun />
       <GameLoop />
     </Canvas>
   );
