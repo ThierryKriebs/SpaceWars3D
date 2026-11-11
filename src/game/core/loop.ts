@@ -1,6 +1,7 @@
 // The heartbeat of the game: a fixed-step loop, same dt on every machine.
 import { state } from "./state";
-import { spawnPlayer } from "../entities/PlayerShip";
+import { spawnPlayer, updatePlayer } from "../entities/PlayerShip";
+import { updateShips } from "../physics/newton";
 
 // One tick = 1/60 s of real time, on every machine.
 export const STEP = 1 / 60;
@@ -21,8 +22,11 @@ export const Loop = {
     while (Loop.accumulator >= STEP) {
       Loop.accumulator -= STEP;
       state.tickCount += 1;
+      updatePlayer(); // the actors decide: intentions into the photo
+      updateShips(STEP); // newton executes: the only writer of position
       if (state.tickCount % 60 === 0) {
-        console.log(`[GameLoop] tick #${state.tickCount} (60 Hz fixed)`);
+        const p = state.ships[0]?.position;
+        console.log(`[GameLoop] tick #${state.tickCount}, ship at (${p?.x.toFixed(2)}, ${p?.y.toFixed(2)}, ${p?.z.toFixed(2)})`);
       }
     }
   },

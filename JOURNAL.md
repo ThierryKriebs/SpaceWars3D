@@ -109,3 +109,15 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : `<OrbitControls />` (drei, 2 lignes) dans `Scene.tsx` — vérification visuelle : orbiter le champ d'étoiles sur `localhost:3000/play`. Puis pas 4 (`environment/Sun.tsx` : `directionalLight` + halo).
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-11 — Session 9 : MISSION 0 terminée, MISSION 1 lancée (fiche + newton), incident node_modules
+
+**Fait** : MISSION 0 terminée (pas 1-5 : scène noire + OrbitControls, étoiles rondes immobiles, soleil v0, Terre sphère bleue, jour/nuit visibles). ARCHITECTURE.md relu — changements du 9 nov. non commités pris en compte : `types/` en barrel + fichiers par genre, `ShipSheet`, `InputIntent` en valeurs 0-1, `capabilities/` (ex-ai), `levels/roles/`, `missions/`, pas de Zod en v1. MISSION 1 sous-pas 1 commité par Thierry : `types/{index,sheets,intents}.ts`, `state.ships` + `state.input`, `PlayerShip.spawnPlayer()`, spawn au premier tick (`Loop.started`). Sous-pas 2 appliqué (non commité) : `physics/newton.ts` (`updateShips`, seul écrivain de `position`), règle des intentions corrigée — chaque vaisseau lit `ship.intent` dans SA fiche, `updatePlayer()` recopie `state.input` → intent du joueur (sinon tous les vaisseaux accéléreraient ensemble, bug signalé par Thierry), `loop.ts` appelle `updatePlayer()` puis `updateShips(STEP)`, log de position toutes les 60 ticks. `tsc --noEmit` propre hors démo/layout.
+
+**Appris / incidents** : incident node_modules — lien `node_modules/@next/swc-win32-x64-msvc` manquant (SWC non chargé → `next.config.ts` illisible, `SyntaxError: Unexpected token 'export'`), puis package `next` extrait incomplet (`dist/bin/next` vide) après un `pnpm install --force` interrompu par timeout. Cause suspectée : un fichier supprimé sans faire exprès dans node_modules (git status ne montre aucune suppression de fichier suivi). Fix en cours : lien SWC recréé à la main, `pnpm install --force` relancé en arrière-plan. Leçons : ne jamais interrompre une installation pnpm ; si node_modules est corrompu, la réparation sûre = supprimer tout le dossier et réinstaller proprement.
+
+**Prochaine étape** : finir la réparation de node_modules, vérifier `pnpm run dev` + `GET /play` → 200 + console navigateur (`[PlayerShip] spawned at origin`, `ship at (0.00, 0.00, -5.x)` qui avance = inertie), commiter le sous-pas 2, puis sous-pas 3 : `game/controls/keyboard.ts` (clavier → `state.input.thrust`).
+
+**Règle du projet** : une session = une victoire.

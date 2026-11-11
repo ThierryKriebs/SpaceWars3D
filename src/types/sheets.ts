@@ -1,3 +1,5 @@
+import type { InputIntent } from "./intents";
+
 // The sheets: one contract per species living in the photo (state.ts).
 export interface Vec3 {
   x: number;
@@ -11,6 +13,7 @@ export interface ShipSheet {
   position: Vec3;
   velocity: Vec3;
   rotation: Vec3;
+  intent: InputIntent; // this ship's OWN intentions — never the global input
   thrustPower: number;
   maxSpeed: number;
 }
