@@ -6,5 +6,5 @@ export const state = {
   tickCount: 0,
   ships: [] as ShipSheet[],
   // Player intentions (0-1 values): written only by game/controls/.
-  input: { thrust: 0, brake: 0 } as InputIntent,
+  input: { thrust: 0, brake: 0, stop: 0 } as InputIntent,
 };

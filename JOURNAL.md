@@ -121,3 +121,15 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : finir la réparation de node_modules, vérifier `pnpm run dev` + `GET /play` → 200 + console navigateur (`[PlayerShip] spawned at origin`, `ship at (0.00, 0.00, -5.x)` qui avance = inertie), commiter le sous-pas 2, puis sous-pas 3 : `game/controls/keyboard.ts` (clavier → `state.input.thrust`).
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-11 — Session 9 (suite) : MISSION 1 jouable (vaisseau pilotable), modifs retenues pour demain
+
+**Fait** : MISSION 1 fonctionnelle de bout en bout — vaisseau FalconMk2 visible et piloté : Z/W accélère, S/flèche bas recule (rétrofusée), Espace = frein auto qui s'arrête pile à vz=0. CameraRig suit le vaisseau en 3e personne (OrbitControls gardé en commentaire pour le debug). Chaîne complète : clavier → `state.input` → `updatePlayer` → `ship.intent` → newton → `position` → miroir `Entities` → 3D. `tsc --noEmit` propre hors démo/layout. Bugs corrigés en route : React Compiler figeait `state.ships.map` (contourné par `slice(0, count)`) ; `keyup` Space manquant (le frein restait bloqué, vaisseau impossible à faire repartir).
+
+**Appris / incidents** : le miroir `Entities` empile useState + useEffect + useFrame + slice juste pour détecter le spawn — trop compliqué à comprendre. **Modification retenue pour demain (PAS appliquée)** : déplacer `spawnPlayer()` au chargement du module (top-level de loop.ts) et réduire `Entities` à un simple `state.ships.map(...)`. À simplifier aussi plus tard : le cast `as keyof typeof modelRegistry`, les logs de debug `[Entities] ...` encore présents dans le code, et le frein auto (Espace) qui emprunte `brakePower` — il faudra un `stopPower` plus doux, propre à la fiche.
+
+**Prochaine étape** : demain — appliquer la simplification de Entities, retirer les logs de debug, commit + push. Ensuite au choix : rotations du vaisseau (tangage/lacet/roulis) ou autre.
+
+**Règle du projet** : une session = une victoire.

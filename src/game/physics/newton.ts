@@ -9,6 +9,13 @@ export function updateShips(dt: number): void {
     ship.velocity.z -= ship.intent.thrust * ship.thrustPower * dt;
     ship.velocity.z += ship.intent.brake * ship.brakePower * dt;
 
+    // Auto-brake (Space): decelerate toward 0 and stop there — never reverses.
+    if (ship.intent.stop > 0) {
+      const decel = ship.brakePower * dt;
+      if (Math.abs(ship.velocity.z) <= decel) ship.velocity.z = 0;
+      else ship.velocity.z -= Math.sign(ship.velocity.z) * decel;
+    }
+
     // Speed cap: clamp the velocity length, keeping its direction.
     const speed = Math.hypot(ship.velocity.x, ship.velocity.y, ship.velocity.z);
     if (speed > ship.maxSpeed) {

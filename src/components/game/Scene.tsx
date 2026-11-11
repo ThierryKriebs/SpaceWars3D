@@ -1,7 +1,9 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+// Kept for debugging (mouse orbit/zoom/pan) — replaced by CameraRig:
+// import { OrbitControls } from "@react-three/drei";
+import { CameraRig } from "./CameraRig";
 
 import { Loop } from "@/game/core/loop";
 
@@ -25,11 +27,9 @@ export default function Scene() {
     // style overrides the container's default width/height: 100% and pins
     // the canvas to the viewport (its parent has no definite height).
     <Canvas style={{ width: "100vw", height: "100vh" }}>
-      {/* Ready-made component from drei: it binds the mouse to the camera
-          (left-drag orbits, wheel zooms, right-drag pans). Temporary —
-          it will be replaced later by our own CameraRig. */}
       <GameLoop /> {/* the world advances before the mirrors read it */}
-      <OrbitControls />
+      <CameraRig /> {/* follows the player ship */}
+      {/* <OrbitControls /> Debug tool kept commented out — binds the mouse to the camera (orbit/zoom/pan) */}
       <Space />
       <Sun />
       <Earth />

@@ -3,4 +3,5 @@
 export interface InputIntent {
   thrust: number; // 0 = no thrust, 1 = full thrust
   brake: number; // 0 = none, 1 = full retro-thrust (backward)
+  stop: number; // 1 while Space is held: auto-brake to a full stop
 }
