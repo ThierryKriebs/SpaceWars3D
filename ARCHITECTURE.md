@@ -20,13 +20,14 @@ La carte du chantier : qui va où, et pourquoi. Les dossiers naissent quand leur
 9. [`controls/`](#sec-09) — les entrées : capter, traduire, écrire.
 10. [`game/physics/`](#sec-10) — les lois du monde : newton exécute, gravity fait subir, collisions arbitrent.
 11. [`game/weapons/`](#sec-11) — les comportements d'armes : la coque porte, le comportement sert — le projectile, lui, est une entité.
-12. [`game/ai/`](#sec-12) — les capacités : voir (cônes, raycast), esquiver, se battre — les cerveaux nommés assemblent.
-13. [Le fond du monde](#sec-13) — l'environnement en trois exemples.
-14. [Où va quoi](#sec-14) — le tableau de correspondance.
-15. [Règles de circulation](#sec-15) — les imports et leurs sens uniques.
-16. [Les contradictions futures, déjà tranchées](#sec-16) — les débats clos d'avance.
-17. [La démo Terre 2065](#sec-17) — son statut de référence visuelle.
-18. [Ce qui n'existe pas encore](#sec-18) — et pourquoi c'est voulu.
+12. [`game/capabilities/`](#sec-12) — les capacités (ex-ai/) : voir (cônes, raycast), esquiver, se battre — les rôles nommés assemblent.
+13. [`levels/`](#sec-13) — le plateau : `data/` (les niveaux JSON), `roles/` (ex-brains/ : les rôles nommés), `index.ts` (le régisseur) — un niveau se décrit, il ne se code plus.
+14. [Le fond du monde](#sec-14) — l'environnement en trois exemples.
+15. [Où va quoi](#sec-15) — le tableau de correspondance.
+16. [Règles de circulation](#sec-16) — les imports et leurs sens uniques.
+17. [Les contradictions futures, déjà tranchées](#sec-17) — les débats clos d'avance.
+18. [La démo Terre 2065](#sec-18) — son statut de référence visuelle.
+19. [Ce qui n'existe pas encore](#sec-19) — et pourquoi c'est voulu.
 
 ---
 
@@ -126,16 +127,16 @@ src/
 │   ├── weapons/                  # COMPORTEMENTS d'armes : droite, guidé, verrouillé… (code) — PAS des
 │                                 #   entités : pas de fiche dans la photo, jamais réveillées par la boucle ;
 │                                 #   référencées par les fiches des vaisseaux (le projectile, lui, EST une entité)
-│   ├── ai/                       # CERVEAUX = CAPACITÉS (voir : cônes, raycast ; esquiver ;
-│                                 #   se battre : as) — les RÔLES nommés vivent dans levels/brains/ ;
+│   ├── capabilities/             # CAPACITÉS (ex-ai/) : voir (cônes, raycast), esquiver, se
+│                                 #   battre (as) — les RÔLES nommés vivent dans levels/roles/ ;
 │                                 #   un cerveau ne connaît que la photo : il lit, écrit des
 │                                 #   intentions, newton exécute (équité : l'IA ne triche pas)
 │   ├── levels/
 │   │   ├── index.ts              # chargeur : lit un JSON → instancie entités et décors
-│   │   ├── data/                 # NIVEAUX = DONNÉES (JSON) : objets, positions, cerveaux
+│   │   ├── data/                 # NIVEAUX = DONNÉES (JSON) : objets, positions, rôles
 │   │   │   ├── earth-orbit-tutorial.json   # ex. : le tutoriel minier (acte 0)
 │   │   │   └── station-defense.json       # ex. : défense de station de l'acte 3
-│   │   └── brains/               # cerveaux nommés (rôles) référencés par les JSON
+│   │   └── roles/                # rôles nommés (ex-brains/) référencés par les JSON
 │   │       ├── patrol-route.ts          # ex. : ronde de patrouille (waypoints)
 │   │       └── turret-guard.ts          # ex. : tourelle de station (cible + portée)
 │   └── missions/                 # machine à événements : déclencheurs, dialogues, spawns
@@ -166,20 +167,20 @@ src/
 
   "npcs": [
     { "model": "falcon-mk2", "faction": "ally",
-      "position": [30, 0, 100], "brain": "wingman-follow", "callsign": "Vega-2" },
+      "position": [30, 0, 100], "role": "wingman-follow", "callsign": "Vega-2" },
 
     { "model": "interceptor", "faction": "enemy",
-      "position": [-200, 40, -300], "brain": "patrol-route", "weapons": ["plasma-cannon"],
+      "position": [-200, 40, -300], "role": "patrol-route", "weapons": ["plasma-cannon"],
       "waypoints": [[-200, 40, -300], [0, 60, -500], [150, 0, -300]] },
 
     { "model": "interceptor", "faction": "enemy",
-      "position": [220, -30, -400], "brain": "patrol-route",
+      "position": [220, -30, -400], "role": "patrol-route",
       "waypoints": [[220, -30, -400], [50, -60, -550], [-180, -20, -350]] }
   ],
 
   "props": [
     { "model": "station-vega", "position": [0, 0, -100] },
-    { "model": "container", "position": [15, -8, -80], "brain": "turret-guard" }
+    { "model": "container", "position": [15, -8, -80], "role": "turret-guard" }
   ],
 
   "mission": { "script": "act3/station-defense.ts" }
@@ -191,7 +192,7 @@ src/
 - **Le joueur ET l'allié portent le même modèle** (`falcon-mk2`) — la faction est une propriété, pas un dossier.
 - **Les deux ennemis partagent le même modèle** (`interceptor`) et le même cerveau (`patrol-route`) avec des *rondes différentes* — code partagé, données différentes.
 - **Le conteneur est inerte… sauf celui qui porte un cerveau** (`turret-guard`) — même JSON, même chargeur.
-- **Un as serait le même JSON** avec un cerveau plus riche (ex. : `ace-duel` dans `levels/brains/`) et une fiche corsée — pas une espèce nouvelle : *chasseur = 1 coup, as = duel*.
+- **Un as serait le même JSON** avec un cerveau plus riche (ex. : `ace-duel` dans `levels/roles/`) et une fiche corsée — pas une espèce nouvelle : *chasseur = 1 coup, as = duel*.
 - **Le décor** (`station-vega`, la Terre) est une maquette de plus — le monde entier n'est qu'une liste d'objets.
 - **L'environnement lui aussi est des données** : preset du soleil, état du fond spatial (`"space": "orbit"`). Le jour de la mission du Soleil, ce même champ deviendra `"sun": { "preset": "near", "heatRadius": 25 }` — même chargeur, autre monde.
 - **Le scénario** est un champ qui référence le script d'événements dans `missions/act3/`.
@@ -537,7 +538,7 @@ Pourquoi "plus tard" : aucune mission n'en a besoin avant d'avoir des choses AUT
 
 ⚠️ **Le faux critère à ne jamais utiliser : "avoir un modèle 3D".** Un décor immobile *a* un modèle et n'est PAS une entité (pas de fiche, dessiné une fois). Un projectile est une entité avec fiche ET modèle. Une arme n'a ni fiche ni modèle à elle : ses canons *dessinés* appartiennent à la maquette du vaisseau, son effet *visible* à la maquette du projectile. **Le modèle est le costume d'une fiche, jamais sa carte d'identité.** Et le modèle ne "contient" pas l'arme au sens logique : changer la coque du Falcon pour un modèle neuf sans canons dessinés ne lui enlève pas son `plasma-cannon` — tant que sa fiche le référence. Le modèle est l'apparence, le comportement est ailleurs.
 
-**"Pourquoi pas dans `entities/` ?" — la question légitime, et sa réponse honnête.** Techniquement, RIEN ne l'empêche : TypeScript s'en fiche, la greffe marcherait pareil depuis un sous-dossier d'`entities/`. C'est une **discipline de métier** : `entities/` a un serment — *ici vivent les choses qui ont une fiche dans la photo* — et une arme n'a pas de fiche. Les armes sont le **troisième tiroir du même meuble** : la coque vit dans `entities/`, et autour d'elle les capacités qu'on lui visse — maquette (`models/`), cerveau (`levels/brains/`), canon (`weapons/`). Aucune n'est une chose vivante ; toutes sont *montables*. Mélanger canon et coque dans le même dossier, et c'est la pente du fourre-tout : la question *"dans ce document, où est-ce que ça va ?"* perdrait sa réponse unique.
+**"Pourquoi pas dans `entities/` ?" — la question légitime, et sa réponse honnête.** Techniquement, RIEN ne l'empêche : TypeScript s'en fiche, la greffe marcherait pareil depuis un sous-dossier d'`entities/`. C'est une **discipline de métier** : `entities/` a un serment — *ici vivent les choses qui ont une fiche dans la photo* — et une arme n'a pas de fiche. Les armes sont le **troisième tiroir du même meuble** : la coque vit dans `entities/`, et autour d'elle les capacités qu'on lui visse — maquette (`models/`), rôle (`levels/roles/`), canon (`weapons/`). Aucune n'est une chose vivante ; toutes sont *montables*. Mélanger canon et coque dans le même dossier, et c'est la pente du fourre-tout : la question *"dans ce document, où est-ce que ça va ?"* perdrait sa réponse unique.
 
 Les trois mauvaises réponses, pour mémoire :
 
@@ -549,7 +550,7 @@ Les trois mauvaises réponses, pour mémoire :
 
 | | Ça décide de… | Vit dans | Référencé par |
 |---|---|---|---|
-| `brains/patrol-route.ts` | *où aller* | `levels/brains/` | le JSON du niveau |
+| `roles/patrol-route.ts` | *où aller* | `levels/roles/` | le JSON du niveau |
 | `weapons/plasma-cannon.ts` | *comment tirer* | `weapons/` | la fiche du vaisseau |
 
 Un `NpcShip` sans cerveau dérive ; avec `patrol-route` il patrouille ; avec `turret-guard` il garde. Idem côté armes — et le libre-échange se lit dans les données :
@@ -589,19 +590,19 @@ En une phrase : **une entité est une coque qui porte des comportements — cerv
 
 <a id="sec-12"></a>
 
-## `game/ai/` — les capacités : voir, esquiver, se battre
+## `game/capabilities/` — les capacités : voir, esquiver, se battre
 
-`ai/` est la bibliothèque des **sens et des réflexes** : détection (cônes, raycast), esquives, as. C'est le jumeau de `weapons/` — des comportements montables — simplement montés entre cerveaux cette fois.
+`capabilities/` (ex-`ai/`) est la bibliothèque des **sens et des réflexes** : détection (cônes, raycast), esquives, as. C'est le jumeau de `weapons/` — des comportements montables — simplement montés entre cerveaux cette fois.
 
-**Capacités vs rôles — la frontière avec `levels/brains/` :**
+**Capacités vs rôles — la frontière avec `levels/roles/` :**
 
-| | `levels/brains/` | `game/ai/` |
+| | `levels/roles/` | `game/capabilities/` |
 |---|---|---|
-| contient | des cerveaux **nommés** : `patrol-route`, `turret-guard` | des **capacités** : voir, esquiver, piloter un duel |
+| contient | des rôles **nommés** : `patrol-route`, `turret-guard` | des **capacités** : voir, esquiver, piloter un duel |
 | c'est | un *rôle* ("ronde de patrouille") | un *savoir-faire* ("détecter une cible dans un cône") |
-| référencé par | le JSON du niveau | les cerveaux nommés |
+| référencé par | le JSON du niveau | les rôles nommés |
 
-Autrement dit : `patrol-route` dit *où aller* ; `ai/` lui fournit *comment voir, comment fuir, comment se battre*. Un cerveau nommé **assemble** des capacités — la même architecture de montage que coque → canon → cerveau.
+Autrement dit : `patrol-route` dit *où aller* ; `capabilities/` lui fournit *comment voir, comment fuir, comment se battre*. Un rôle nommé **assemble** des capacités — la même architecture de montage que coque → canon → cerveau.
 
 **1. La détection — trois couches, du grossier au précis** (le même plié que collisions) :
 
@@ -624,11 +625,75 @@ le cerveau LIT la photo (où est le joueur ? dans mon cône ?)
 
 Un cerveau ne touche ni three.js, ni le clavier — il ne connaît que la photo. C'est pourquoi **Mistral, la coéquipière IA du joueur, pilotera avec exactement les mêmes organes** : ennemis et alliée, même bibliothèque de sens et de réflexes — la fiction et le moteur seront d'accord.
 
-En une phrase : **un `NpcShip` sans cerveau dérive ; avec `patrol-route` il patrouille ; muni des capacités de `ai/` il voit, fuit et se bat — la coque porte, le cerveau décide, la loi exécute.**
+En une phrase : **un `NpcShip` sans cerveau dérive ; avec `patrol-route` il patrouille ; muni des capacités de `capabilities/` il voit, fuit et se bat — la coque porte, le cerveau décide, la loi exécute.**
 
 ---
 
+
 <a id="sec-13"></a>
+
+## `levels/` — le plateau : `data/`, `roles/`, `index.ts`
+
+La récompense de toute l'architecture : ici, un niveau ne se code plus, il **se décrit**. La doctrine (principe n°2) : UNE boucle, et des niveaux = des données JSON. Ajouter le niveau 42 n'ajoute JAMAIS une ligne de code — seulement un fichier. Trois tiroirs, un métier chacun :
+
+| Tiroir | Contient | Métier |
+|---|---|---|
+| `index.ts` | du code | **LE RÉGISSEUR** : lit un JSON → fait naître les fiches dans la photo |
+| `data/` | des fichiers JSON | **LES NIVEAUX** : qui, où, avec quoi — l'état au lever de rideau |
+| `roles/` | du code (ex-`brains/`, renommé le 9 nov.) | **les RÔLES nommés** de mise en scène, référencés par les JSON |
+
+**`index.ts` — le régisseur.** L'inverse exact du miroir : le miroir lit la photo pour afficher ; le chargeur lit des DONNÉES pour **peupler** la photo.
+
+```ts
+// levels/index.ts — dans les grandes lignes
+export function loadLevel(name: string) {
+  const level = parse(jsonDe(`levels/data/${name}.json`));   // 1. il lit les données
+
+  for (const d of level.decors) state.decors.push(new Decor(d));      // 2. il fait naître
+  for (const e of level.npcs)   state.npcs.push(new NpcShip(e));      //    chaque fiche :
+  state.ships.push(new PlayerShip(level.player));                     //    coque instanciée,
+  //                                        rôle et armes montés selon les références du JSON
+}
+```
+
+Ce qu'il ne fait PAS : il ne décide aucun comportement (il monte ceux qui sont référencés), il n'affiche rien (le miroir), il ne fait tourner aucune règle (newton, collisions). **Il assemble** — un régisseur qui installe les décors et distribue les rôles avant le lever de rideau. Et il est appelé UNE fois par niveau, jamais dans la boucle : un organe de coulisses, pas de la scène.
+
+**`data/` — l'état au lever de rideau.** Un niveau = des valeurs : objets, positions, rôles montés, armes, déclencheurs, preset d'environnement. Le bénéfice est déjà dans la feuille de route : ce JSON est exactement ce que **l'éditeur de niveaux intégré** (évolution n°1) importera et exportera — le jour de l'éditeur, on ne code rien de nouveau : on fabrique un outil qui ÉCRIT ces JSON.
+
+**`roles/` — pourquoi du code dans le tiroir des niveaux ?** Le JSON sait dire *qui* et *où* — des valeurs. Mais *"fais une ronde : A, puis B, puis C, recommence"* n'est pas une valeur : c'est une **règle** qui s'exécute à chaque battement — donc du code. Le pont entre les deux : la référence par le nom, comme une maquette :
+
+```json
+{ "model": "interceptor", "position": [-200, 40, -300], "role": "patrol-route",
+  "waypoints": [[-200, 40, -300], [150, 60, -100], [0, 20, -400]] }
+```
+
+```ts
+// levels/roles/patrol-route.ts — la règle ; les waypoints sont des données du JSON
+export function patrolRoute(ship: NpcShip) {
+  const target = ship.waypoints[ship.currentWaypoint];
+  if (distance(ship.position, target) < 20)                                    // point atteint ?
+    ship.currentWaypoint = (ship.currentWaypoint + 1) % ship.waypoints.length; // au suivant (et on boucle)
+  seek(ship, target);   // écrit les intentions : newton exécute
+}
+```
+
+Les **waypoints sont des DONNÉES** (chaque niveau a les siens — c'est le JSON qui les porte) ; *"au suivant quand arrivé, et on recommence"* est une **RÈGLE** (la même pour toutes les rondes — c'est `roles/` qui la porte). Le JSON donne ses valeurs à la règle ; la règle vit dans le tiroir. Libre-échange : `patrol-route` servira le tutoriel minier, `station-defense` et les niveaux à venir — écrite une fois, référencée partout. Le jour où aucun rôle du catalogue ne convient, on en écrit un nouveau : une règle de plus dans le tiroir, zéro niveau modifié.
+
+**Rôles vs capacités — la frontière qui a justifié le renommage (9 nov.).** `roles/` (ex-`brains/`) = la MISE EN SCÈNE (patrouiller, garder — référencés PAR les JSON de niveau) ; `capabilities/` (ex-`ai/`) = les SCIENCES (voir, esquiver, se battre — importées PAR le code des rôles). Test infaillible : **référencé par un JSON de niveau → `levels/roles/` ; importé par du code → `game/capabilities/`.**
+
+```
+levels/data/xxx.json ──"role": "patrol-route"──▶ levels/roles/ ──import──▶ capabilities/
+   (le niveau désigne                     (le rôle assemble           (les sciences
+    un RÔLE, par son nom)                  les capacités)               transversales)
+```
+
+**Pourquoi `levels/` vit dans `game/` ?** Test habituel : ça ne s'affiche pas (le chargeur instancie, il ne dessine pas) ; ça ne vit pas dans la photo (il la peuple, puis se tait). Logique pure du monde, TypeScript sans React ni three.js → `game/`, serment compris. Bénéfice : le jour d'un test de niveau sans écran (lancer le JSON et vérifier que personne ne meurt dans les 30 premières secondes), il tournera sans Canvas — une répétition sans plateau.
+
+**La frontière avec `missions/`** : `levels/` installe le monde (le plateau : qui et où au lever de rideau) ; `missions/` le fait vivre (le déroulé : déclencheurs, dialogues, spawns). Le niveau installe ; la mission raconte.
+
+---
+
+<a id="sec-14"></a>
 
 ## Le fond du monde — `environment/` en trois exemples
 
@@ -661,7 +726,7 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 
 ---
 
-<a id="sec-14"></a>
+<a id="sec-15"></a>
 
 ## Où va quoi — le tableau de correspondance
 
@@ -674,15 +739,15 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 | Afficher les entités vivantes (le miroir : recopier la photo vers three.js) | `components/game/Entities.tsx` — un miroir par espèce, jamais par objet |
 | Un acteur logique (joueur, PNJ, projectile, accessoire) | `game/entities/` — référence un modèle |
 | Un comportement d'arme (guidage, balistique) | `game/weapons/` (code) ; la variante précise = réglages JSON — l'arme n'a pas de fiche ; le projectile qu'elle crée, si |
-| Un cerveau d'objet (tourelle, patrouilleur) | `game/levels/brains/`, référencé par le JSON du niveau |
+| Un rôle d'objet (tourelle, patrouilleur) | `game/levels/roles/` (ex-brains/), référencé par le JSON du niveau |
 | La physique, les collisions | `game/physics/` |
 | Le pilotage (entrées) | `game/controls/` |
-| L'IA de vol (voir, esquiver, se battre) | `game/ai/` — les CAPACITÉS ; le cerveau-nom (le RÔLE) vit dans `levels/brains/` |
+| L'IA de vol (voir, esquiver, se battre) | `game/capabilities/` (ex-ai/) — les CAPACITÉS ; le rôle nommé vit dans `levels/roles/` |
 | Un niveau entier | `game/levels/data/xxx.json` |
 | Le scénario d'une mission | `game/missions/` |
 | Un type partagé | `types/` |
 
-<a id="sec-15"></a>
+<a id="sec-16"></a>
 
 ## Règles de circulation
 
@@ -692,7 +757,7 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 4. **Pas de dossier par niveau, pas de boucle par niveau** : un niveau = un JSON + éventuellement un cerveau de mission. Toute ressemblance entre deux niveaux = données partagées, jamais code copié.
 5. Un niveau qui a besoin de code custom = un champ `"script"` dans son JSON qui référence `game/missions/`.
 
-<a id="sec-16"></a>
+<a id="sec-17"></a>
 
 ## Les contradictions futures, déjà tranchées
 
@@ -702,7 +767,7 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 - **Arsenal de missiles** : 4-5 comportements dans `weapons/`, chaque missile réel = une ligne de réglages dans les données.
 - **Rotation des vaisseaux** : inertielle comme la translation (vitesse angulaire dans la photo, la commande est un couple) mais amortie par des stabilisateurs — `angularDamping`, curseur PAR VAISSEAU dans le JSON (chasseur vif ↔ capital lourd). Tranché le 9 nov. : ni pirouettes infinies, ni rotation sur rails.
 - **Armes vs entités** : une arme n'est PAS une entité. Le test d'entrée d'`entities/` est la fiche dans la photo (*"naît, vit, peut mourir ?"*), JAMAIS le modèle 3D — un décor a un modèle sans être une entité, un projectile est une entité avec modèle, une arme n'a ni fiche ni modèle à elle. Le canon monté est un comportement référencé par la fiche ; ses canons dessinés vivent dans la maquette du vaisseau ; le projectile qu'il crée est une entité à part entière. Et le jour où un canon devient vivant (tourelle avec hp), il devient une entité qui référence une arme. Tranché le 9 nov.
-- **Cerveaux nommés vs capacités d'IA** : `levels/brains/` porte des RÔLES (*où aller*), `game/ai/` porte des SAVOIR-FAIRE (*comment voir, esquiver, se battre*) — un cerveau nommé ASSEMBLE des capacités. L'IA ne triche jamais : ses esquives sont des intentions que newton exécute (équité jusqu'aux cerveaux) ; les ennemis lointains dorment (tick radius ~60 unités, grossier d'abord). Et Mistral, coéquipière du joueur, pilotera avec les mêmes organes que les ennemis. Tranché le 9 nov.
+- **Rôles nommés vs capacités** (ex-*Cerveaux nommés vs capacités d'IA*) : `levels/roles/` (ex-`brains/`) porte des RÔLES (*où aller*), `game/capabilities/` (ex-`ai/`) porte des SAVOIR-FAIRE (*comment voir, esquiver, se battre*) — un rôle ASSEMBLE des capacités. Test : **référencé par un JSON de niveau → `levels/roles/` ; importé par du code → `game/capabilities/`.** L'IA ne triche jamais : ses esquives sont des intentions que newton exécute (équité jusqu'aux cerveaux) ; les ennemis lointains dorment (tick radius ~60 unités, grossier d'abord). Et Mistral, coéquipière du joueur, pilotera avec les mêmes organes que les ennemis. Tranché le 9 nov.
 - **Objets inertes vs interactifs** : même JSON, même chargeur ; la différence est un cerveau référencé. Un décor peut devenir interactif en lui ajoutant un cerveau.
 - **Les soleils multiples (distant / L1 / proche)** : UNE maquette `environment/Sun.tsx` paramétrable + un `preset` par niveau dans le JSON (échelle, éruptions, `heatRadius`). La *menace* (chaleur, radiations, bouclier qui fond) vit dans `game/` comme zone de danger pilotée par `heatRadius` — même mécanisme réutilisable pour l'atmosphère terrestre (friction si trop bas). Le décor affiche, `game/` punit.
 - **Modes de jeu (brevet de pilotage, entraînement, course…) et dizaines de niveaux** : `Scene.tsx` ne contient AUCUN niveau ni mode — c'est le plateau, pas les pièces. Il assemble toujours la même chose (caméra, environnement selon preset, `Entities` qui mappe l'état, effets). Un mode = un JSON de niveau + un script de mission + éventuellement un élément HUD dédié ; ajouter la course ne change pas une ligne de `Scene.tsx`. Si un jour ses parties deviennent des métiers séparés, il devient `Scene/index.tsx` (règle des métiers) — même porte, même rôle.
@@ -710,13 +775,13 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 - **Éditeur de niveaux futur** : une page `app/editor/` qui lit et écrit des JSON de `game/levels/data/` — l'architecture le rend presque gratuit.
 - **VR future** : `controls/` gagne une entrée WebXR ; le reste ne sait même pas que ça existe.
 
-<a id="sec-17"></a>
+<a id="sec-18"></a>
 
 ## La démo Terre 2065 — statut
 
 Démo historique générée automatiquement (2 fichiers : `app/terre2065/page.tsx` + `components/Terre2065.tsx`), conservée **telle quelle** comme référence visuelle, amenée à disparaître quand `/play` l'aura rattrapée. Elle n'est **pas** une référence d'architecture : tout nouveau code suit la cible ci-dessus, sans renommage ni maintenance de la démo. Plan d'exécution et calendrier : voir `JOURNAL.md`.
 
-<a id="sec-18"></a>
+<a id="sec-19"></a>
 
 ## Ce qui n'existe PAS encore (et c'est voulu)
 
