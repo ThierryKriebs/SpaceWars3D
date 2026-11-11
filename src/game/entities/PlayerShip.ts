@@ -8,8 +8,9 @@ export function spawnPlayer(): void {
     position: { x: 0, y: 0, z: -5 }, // 10 units in front of the default camera
     velocity: { x: 0, y: 0, z: 0 }, // starts at rest — press W to accelerate
     rotation: { x: 0, y: 0, z: 0 },
-    intent: { thrust: 0 },
+    intent: { thrust: 0, brake: 0 },
     thrustPower: 20,
+    brakePower: 10,
     maxSpeed: 30,
   };
   state.ships.push(player);
@@ -23,4 +24,5 @@ export function updatePlayer(): void {
 
   // Retrieves the state of the ‘accelerate’ key
   player.intent.thrust = state.input.thrust;
+  player.intent.brake = state.input.brake;
 }

@@ -2,4 +2,5 @@
 // Written only by game/controls/, read by the actors and newton.
 export interface InputIntent {
   thrust: number; // 0 = no thrust, 1 = full thrust
+  brake: number; // 0 = none, 1 = full retro-thrust (backward)
 }

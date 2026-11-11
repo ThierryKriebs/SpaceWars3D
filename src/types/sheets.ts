@@ -15,5 +15,6 @@ export interface ShipSheet {
   rotation: Vec3;
   intent: InputIntent; // this ship's OWN intentions — never the global input
   thrustPower: number;
+  brakePower: number; // retro-thrust power (backward)
   maxSpeed: number;
 }

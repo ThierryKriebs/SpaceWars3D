@@ -4,8 +4,10 @@ import { state } from "../core/state";
 // It is the ONLY module in the whole game allowed to write `position`.
 export function updateShips(dt: number): void {
   for (const ship of state.ships) {
-    // Each ship reads ITS OWN intent from its sheet (forward = -z).
+    // Each ship reads ITS OWN intent from its sheet. Forward = -z, backward = +z.
+    // Both are 0-1 intentions — no if needed, multiplying by 0 does nothing.
     ship.velocity.z -= ship.intent.thrust * ship.thrustPower * dt;
+    ship.velocity.z += ship.intent.brake * ship.brakePower * dt;
 
     // Speed cap: clamp the velocity length, keeping its direction.
     const speed = Math.hypot(ship.velocity.x, ship.velocity.y, ship.velocity.z);
