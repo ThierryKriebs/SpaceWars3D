@@ -5,8 +5,8 @@ import type { ShipSheet } from "@/types";
 export function spawnPlayer(): void {
   const player: ShipSheet = {
     model: "falcon-mk2",
-    position: { x: 0, y: 0, z: 0 },
-    velocity: { x: 0, y: 0, z: -5 }, // small initial drift: inertia visible in the logs
+    position: { x: 0, y: 0, z: -5 }, // 10 units in front of the default camera
+    velocity: { x: 0, y: 0, z: 0 }, // starts at rest — press W to accelerate
     rotation: { x: 0, y: 0, z: 0 },
     intent: { thrust: 0 },
     thrustPower: 20,

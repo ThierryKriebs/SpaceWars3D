@@ -27,6 +27,8 @@ export function Sun() {
   return (
     <>
       {/* With r3f, three.js components need no import */}
+      {/* Ambient fill: unlit faces stay readable (space is never pure black). */}
+      <ambientLight intensity={0.5} />
       {/* The honest light: directional, shining from the sun's position. */}
       <directionalLight position={[100, 50, -100]} intensity={2.5} color="#fff3d6" />
       {/* The visible halo: a sprite always faces the camera. */}
