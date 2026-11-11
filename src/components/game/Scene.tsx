@@ -7,6 +7,7 @@ import { Loop } from "@/game/core/loop";
 
 import { Space } from "./environment/Space";
 import { Sun } from "./environment/Sun";
+import { Earth } from "./environment/Earth";
 
 // The single hook between our game world and r3f's render loop:
 // r3f calls this on every frame, we run the fixed-step game ticks.
@@ -29,6 +30,7 @@ export default function Scene() {
       <OrbitControls />
       <Space />
       <Sun />
+      <Earth />
       <GameLoop />
     </Canvas>
   );
