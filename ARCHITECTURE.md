@@ -20,12 +20,13 @@ La carte du chantier : qui va où, et pourquoi. Les dossiers naissent quand leur
 9. [`controls/`](#sec-09) — les entrées : capter, traduire, écrire.
 10. [`game/physics/`](#sec-10) — les lois du monde : newton exécute, gravity fait subir, collisions arbitrent.
 11. [`game/weapons/`](#sec-11) — les comportements d'armes : la coque porte, le comportement sert — le projectile, lui, est une entité.
-12. [Le fond du monde](#sec-12) — l'environnement en trois exemples.
-13. [Où va quoi](#sec-13) — le tableau de correspondance.
-14. [Règles de circulation](#sec-14) — les imports et leurs sens uniques.
-15. [Les contradictions futures, déjà tranchées](#sec-15) — les débats clos d'avance.
-16. [La démo Terre 2065](#sec-16) — son statut de référence visuelle.
-17. [Ce qui n'existe pas encore](#sec-17) — et pourquoi c'est voulu.
+12. [`game/ai/`](#sec-12) — les capacités : voir (cônes, raycast), esquiver, se battre — les cerveaux nommés assemblent.
+13. [Le fond du monde](#sec-13) — l'environnement en trois exemples.
+14. [Où va quoi](#sec-14) — le tableau de correspondance.
+15. [Règles de circulation](#sec-15) — les imports et leurs sens uniques.
+16. [Les contradictions futures, déjà tranchées](#sec-16) — les débats clos d'avance.
+17. [La démo Terre 2065](#sec-17) — son statut de référence visuelle.
+18. [Ce qui n'existe pas encore](#sec-18) — et pourquoi c'est voulu.
 
 ---
 
@@ -125,7 +126,10 @@ src/
 │   ├── weapons/                  # COMPORTEMENTS d'armes : droite, guidé, verrouillé… (code) — PAS des
 │                                 #   entités : pas de fiche dans la photo, jamais réveillées par la boucle ;
 │                                 #   référencées par les fiches des vaisseaux (le projectile, lui, EST une entité)
-│   ├── ai/                       # CERVEAUX : détection (cônes, raycast), esquives, as
+│   ├── ai/                       # CERVEAUX = CAPACITÉS (voir : cônes, raycast ; esquiver ;
+│                                 #   se battre : as) — les RÔLES nommés vivent dans levels/brains/ ;
+│                                 #   un cerveau ne connaît que la photo : il lit, écrit des
+│                                 #   intentions, newton exécute (équité : l'IA ne triche pas)
 │   ├── levels/
 │   │   ├── index.ts              # chargeur : lit un JSON → instancie entités et décors
 │   │   ├── data/                 # NIVEAUX = DONNÉES (JSON) : objets, positions, cerveaux
@@ -187,6 +191,7 @@ src/
 - **Le joueur ET l'allié portent le même modèle** (`falcon-mk2`) — la faction est une propriété, pas un dossier.
 - **Les deux ennemis partagent le même modèle** (`interceptor`) et le même cerveau (`patrol-route`) avec des *rondes différentes* — code partagé, données différentes.
 - **Le conteneur est inerte… sauf celui qui porte un cerveau** (`turret-guard`) — même JSON, même chargeur.
+- **Un as serait le même JSON** avec un cerveau plus riche (ex. : `ace-duel` dans `levels/brains/`) et une fiche corsée — pas une espèce nouvelle : *chasseur = 1 coup, as = duel*.
 - **Le décor** (`station-vega`, la Terre) est une maquette de plus — le monde entier n'est qu'une liste d'objets.
 - **L'environnement lui aussi est des données** : preset du soleil, état du fond spatial (`"space": "orbit"`). Le jour de la mission du Soleil, ce même champ deviendra `"sun": { "preset": "near", "heatRadius": 25 }` — même chargeur, autre monde.
 - **Le scénario** est un champ qui référence le script d'événements dans `missions/act3/`.
@@ -581,7 +586,49 @@ En une phrase : **une entité est une coque qui porte des comportements — cerv
 
 ---
 
+
 <a id="sec-12"></a>
+
+## `game/ai/` — les capacités : voir, esquiver, se battre
+
+`ai/` est la bibliothèque des **sens et des réflexes** : détection (cônes, raycast), esquives, as. C'est le jumeau de `weapons/` — des comportements montables — simplement montés entre cerveaux cette fois.
+
+**Capacités vs rôles — la frontière avec `levels/brains/` :**
+
+| | `levels/brains/` | `game/ai/` |
+|---|---|---|
+| contient | des cerveaux **nommés** : `patrol-route`, `turret-guard` | des **capacités** : voir, esquiver, piloter un duel |
+| c'est | un *rôle* ("ronde de patrouille") | un *savoir-faire* ("détecter une cible dans un cône") |
+| référencé par | le JSON du niveau | les cerveaux nommés |
+
+Autrement dit : `patrol-route` dit *où aller* ; `ai/` lui fournit *comment voir, comment fuir, comment se battre*. Un cerveau nommé **assemble** des capacités — la même architecture de montage que coque → canon → cerveau.
+
+**1. La détection — trois couches, du grossier au précis** (le même plié que collisions) :
+
+- **Le cône de vision** — chaque ennemi regarde devant lui dans un cône (angle + portée). Le test est le produit scalaire : *"l'angle entre mon regard et la direction vers toi est-il plus petit que mon angle de vision ? à portée ?"* Prototype acté (chantier n°2) : **les cônes visualisés dans la scène, qui rougissent quand le joueur est repéré**.
+- **La sphère radar** — à bout portant, plus besoin de cône : il te *sent* autour de lui (le test sphérique pas cher).
+- **Le raycast** — le test précis, le coûteux, payé en dernier : *"même dans mon cône, un morceau de station fait-il écran entre toi et moi ?"* La ligne de vue contre le décor — d'où les **courses-poursuites dans les flottes** : casser la ligne de vue en traversant la masse, *le système de détection retourné en défense*.
+- **Et la perf** : des ennemis **endormis** au-delà d'un tick radius (~60 unités, déjà acté) — trop loin pour te voir, le cerveau dort et ne coûte rien. Le grossier d'abord, jusqu'aux cerveaux.
+
+**2. Les esquives — la difficulté du jeu.** La doctrine de létalité est tranchée : pas de boucliers-éponges, 1-3 coups, avions WWII — **le défi vient de l'IA évasive** (drifts, loopings, breaks), pas des points de vie. Et la beauté de la plomberie : une esquive n'est qu'une **intention** écrite dans la photo (*"poussée 80 %, lacet fort gauche"*) — c'est **newton qui l'exécute**. L'ennemi ne triche pas la physique : ses drifts glissent comme les tiens. **L'équité jusqu'aux cerveaux.**
+
+**3. Les as — des réglages, pas une espèce.** Un as (ennemi d'élite, nommé, mini-boss) n'est pas une classe nouvelle : un `NpcShip` ordinaire avec un cerveau plus riche et une fiche aux réglages corsés. La grille est déjà tranchée : *chasseur = 1 coup, as = duel*. Le même comportement en code, des réglages différents — la doctrine jusque dans l'élitisme.
+
+**La place dans la chaîne** — un cerveau ne fait que deux choses, à son tour de réveil :
+
+```
+le cerveau LIT la photo (où est le joueur ? dans mon cône ?)
+           ÉCRIT des intentions (poussée, lacet, tir)
+→ newton exécute → collisions arbitrent → le miroir recopie, r3f peint
+```
+
+Un cerveau ne touche ni three.js, ni le clavier — il ne connaît que la photo. C'est pourquoi **Mistral, la coéquipière IA du joueur, pilotera avec exactement les mêmes organes** : ennemis et alliée, même bibliothèque de sens et de réflexes — la fiction et le moteur seront d'accord.
+
+En une phrase : **un `NpcShip` sans cerveau dérive ; avec `patrol-route` il patrouille ; muni des capacités de `ai/` il voit, fuit et se bat — la coque porte, le cerveau décide, la loi exécute.**
+
+---
+
+<a id="sec-13"></a>
 
 ## Le fond du monde — `environment/` en trois exemples
 
@@ -614,7 +661,7 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 
 ---
 
-<a id="sec-13"></a>
+<a id="sec-14"></a>
 
 ## Où va quoi — le tableau de correspondance
 
@@ -630,12 +677,12 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 | Un cerveau d'objet (tourelle, patrouilleur) | `game/levels/brains/`, référencé par le JSON du niveau |
 | La physique, les collisions | `game/physics/` |
 | Le pilotage (entrées) | `game/controls/` |
-| L'IA de vol | `game/ai/` |
+| L'IA de vol (voir, esquiver, se battre) | `game/ai/` — les CAPACITÉS ; le cerveau-nom (le RÔLE) vit dans `levels/brains/` |
 | Un niveau entier | `game/levels/data/xxx.json` |
 | Le scénario d'une mission | `game/missions/` |
 | Un type partagé | `types/` |
 
-<a id="sec-14"></a>
+<a id="sec-15"></a>
 
 ## Règles de circulation
 
@@ -645,7 +692,7 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 4. **Pas de dossier par niveau, pas de boucle par niveau** : un niveau = un JSON + éventuellement un cerveau de mission. Toute ressemblance entre deux niveaux = données partagées, jamais code copié.
 5. Un niveau qui a besoin de code custom = un champ `"script"` dans son JSON qui référence `game/missions/`.
 
-<a id="sec-15"></a>
+<a id="sec-16"></a>
 
 ## Les contradictions futures, déjà tranchées
 
@@ -655,6 +702,7 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 - **Arsenal de missiles** : 4-5 comportements dans `weapons/`, chaque missile réel = une ligne de réglages dans les données.
 - **Rotation des vaisseaux** : inertielle comme la translation (vitesse angulaire dans la photo, la commande est un couple) mais amortie par des stabilisateurs — `angularDamping`, curseur PAR VAISSEAU dans le JSON (chasseur vif ↔ capital lourd). Tranché le 9 nov. : ni pirouettes infinies, ni rotation sur rails.
 - **Armes vs entités** : une arme n'est PAS une entité. Le test d'entrée d'`entities/` est la fiche dans la photo (*"naît, vit, peut mourir ?"*), JAMAIS le modèle 3D — un décor a un modèle sans être une entité, un projectile est une entité avec modèle, une arme n'a ni fiche ni modèle à elle. Le canon monté est un comportement référencé par la fiche ; ses canons dessinés vivent dans la maquette du vaisseau ; le projectile qu'il crée est une entité à part entière. Et le jour où un canon devient vivant (tourelle avec hp), il devient une entité qui référence une arme. Tranché le 9 nov.
+- **Cerveaux nommés vs capacités d'IA** : `levels/brains/` porte des RÔLES (*où aller*), `game/ai/` porte des SAVOIR-FAIRE (*comment voir, esquiver, se battre*) — un cerveau nommé ASSEMBLE des capacités. L'IA ne triche jamais : ses esquives sont des intentions que newton exécute (équité jusqu'aux cerveaux) ; les ennemis lointains dorment (tick radius ~60 unités, grossier d'abord). Et Mistral, coéquipière du joueur, pilotera avec les mêmes organes que les ennemis. Tranché le 9 nov.
 - **Objets inertes vs interactifs** : même JSON, même chargeur ; la différence est un cerveau référencé. Un décor peut devenir interactif en lui ajoutant un cerveau.
 - **Les soleils multiples (distant / L1 / proche)** : UNE maquette `environment/Sun.tsx` paramétrable + un `preset` par niveau dans le JSON (échelle, éruptions, `heatRadius`). La *menace* (chaleur, radiations, bouclier qui fond) vit dans `game/` comme zone de danger pilotée par `heatRadius` — même mécanisme réutilisable pour l'atmosphère terrestre (friction si trop bas). Le décor affiche, `game/` punit.
 - **Modes de jeu (brevet de pilotage, entraînement, course…) et dizaines de niveaux** : `Scene.tsx` ne contient AUCUN niveau ni mode — c'est le plateau, pas les pièces. Il assemble toujours la même chose (caméra, environnement selon preset, `Entities` qui mappe l'état, effets). Un mode = un JSON de niveau + un script de mission + éventuellement un élément HUD dédié ; ajouter la course ne change pas une ligne de `Scene.tsx`. Si un jour ses parties deviennent des métiers séparés, il devient `Scene/index.tsx` (règle des métiers) — même porte, même rôle.
@@ -662,13 +710,13 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 - **Éditeur de niveaux futur** : une page `app/editor/` qui lit et écrit des JSON de `game/levels/data/` — l'architecture le rend presque gratuit.
 - **VR future** : `controls/` gagne une entrée WebXR ; le reste ne sait même pas que ça existe.
 
-<a id="sec-16"></a>
+<a id="sec-17"></a>
 
 ## La démo Terre 2065 — statut
 
 Démo historique générée automatiquement (2 fichiers : `app/terre2065/page.tsx` + `components/Terre2065.tsx`), conservée **telle quelle** comme référence visuelle, amenée à disparaître quand `/play` l'aura rattrapée. Elle n'est **pas** une référence d'architecture : tout nouveau code suit la cible ci-dessus, sans renommage ni maintenance de la démo. Plan d'exécution et calendrier : voir `JOURNAL.md`.
 
-<a id="sec-17"></a>
+<a id="sec-18"></a>
 
 ## Ce qui n'existe PAS encore (et c'est voulu)
 
