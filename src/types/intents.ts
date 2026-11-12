@@ -6,4 +6,6 @@ export interface InputIntent {
   stop: number; // 1 while Space is held: auto-brake to a full stop
   yawLeft: number; // 0-1: turn left around Y (lacet)
   yawRight: number; // 0-1: turn right around Y (lacet)
+  pitchUp: number; // 0-1: nose up around X (tangage)
+  pitchDown: number; // 0-1: nose down around X (tangage)
 }

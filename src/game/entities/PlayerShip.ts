@@ -9,7 +9,7 @@ export function spawnPlayer(): void {
     velocity: { x: 0, y: 0, z: 0 }, // starts at rest — press W to accelerate
     rotation: { x: 0, y: 0, z: 0 },
     angularVelocity: { x: 0, y: 0, z: 0 }, // starts without spin
-    intent: { thrust: 0, brake: 0, stop: 0, yawLeft: 0, yawRight: 0 },
+    intent: { thrust: 0, brake: 0, stop: 0, yawLeft: 0, yawRight: 0, pitchUp: 0, pitchDown: 0 },
     thrustPower: 20,
     brakePower: 20,
     turnPower: 3, // rad/s² of angular acceleration at full yaw intent
@@ -30,4 +30,6 @@ export function updatePlayer(): void {
   player.intent.stop = state.input.stop;
   player.intent.yawLeft = state.input.yawLeft;
   player.intent.yawRight = state.input.yawRight;
+  player.intent.pitchUp = state.input.pitchUp;
+  player.intent.pitchDown = state.input.pitchDown;
 }

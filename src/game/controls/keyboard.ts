@@ -9,6 +9,8 @@ export function attachKeyboard(): void {
     if (e.code === "Space") state.input.stop = 1; // auto-brake to a full stop
     if (e.code === "ArrowLeft") state.input.yawLeft = 1;
     if (e.code === "ArrowRight") state.input.yawRight = 1;
+    if (e.code === "KeyQ") state.input.pitchUp = 1; // nose up (pitch)
+    if (e.code === "KeyE") state.input.pitchDown = 1; // nose down (pitch)
   });
   window.addEventListener("keyup", (e) => {
     if (e.code === "ArrowUp" || e.code === "KeyW") state.input.thrust = 0;
@@ -16,5 +18,7 @@ export function attachKeyboard(): void {
     if (e.code === "Space") state.input.stop = 0; // release the auto-brake
     if (e.code === "ArrowLeft") state.input.yawLeft = 0;
     if (e.code === "ArrowRight") state.input.yawRight = 0;
+    if (e.code === "KeyQ") state.input.pitchUp = 0;
+    if (e.code === "KeyE") state.input.pitchDown = 0;
   });
 }

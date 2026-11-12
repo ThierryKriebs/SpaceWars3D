@@ -17,7 +17,7 @@ export interface ShipSheet {
   intent: InputIntent; // this ship's OWN intentions — never the global input
   thrustPower: number;
   brakePower: number; // retro-thrust power (backward)
-  turnPower: number; // angular acceleration around Y (rad/s²)
-  maxTurnRate: number; // cap on angular velocity (rad/s)
+  turnPower: number; // angular acceleration per rotation axis (rad/s²)
+  maxTurnRate: number; // cap on angular velocity per axis (rad/s)
   maxSpeed: number;
 }

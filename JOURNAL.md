@@ -181,3 +181,75 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : commit + push par Thierry (point 1 + fix signe lacet + CameraRig applyEuler). Ensuite : tangage ou roulis.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-12 — Session 13 : tangage (axe X) sur Q/E — 6DOF : 2 rotations actives
+
+**Fait** : tangage branché de bout en bout — `InputIntent` gagne `pitchUp`/`pitchDown` (0-1), `state.input` initialisé, `keyboard.ts` : KeyQ = nez en haut, KeyE = nez en bas (keydown + keyup ; codes physiques, donc « A »/« E » sur AZERTY), `updatePlayer()` recopie, `newton.ts` : `angularVelocity.x += (pitchUp - pitchDown) * turnPower * dt` plafonnée à `±maxTurnRate`, et le vecteur avant devient 3D, même composition que l'Euler XYZ de three.js (roulis z = 0 pour l'instant) : `forward = (-sin ry, sin rx·cos ry, -cos rx·cos ry)` — poussée/rétro s'appliquent sur les 3 composantes. Signe du tangage vérifié à la main : rotation.x positive = nez vers +Y = haut de l'écran. `CameraRig` inchangé (applyEuler suit tout seul). `turnPower`/`maxTurnRate` généralisés « par axe de rotation » (commentaire de `sheets.ts`). Vérifié : fichiers relus en entier, `tsc --noEmit` propre hors démo, `GET /play` → 200, chunk servi contient `pitchUp`, `forwardY`, `KeyQ`/`KeyE` ×2. Non commité : Thierry committera.
+
+**Appris / incidents** : rien de cassé. Note : deux éditions lancées en parallèle sur le MÊME fichier se écrasent l'une l'autre (import perdu deux fois) — règle appliquée : une seule édition par fichier à la fois, puis relecture entière. Le tangage se teste en jouant (signe de l'axe X) comme le lacet.
+
+**Prochaine étape** : commit + push par Thierry (tout le chantier non commité : point 1 + fix signe + applyEuler + tangage). Ensuite : roulis (axe Z, touches libres restantes ex. A/D = KeyA/KeyD... à confirmer) pour finir le 6DOF, ou `stopPower` dédié.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-12 — Session 13 (suite) : la formule de rotation rangée dans `game/physics/frames.ts`
+
+**Fait** : nouveau fichier `src/game/physics/frames.ts` — `forwardFromEuler(rx, ry): Vec3`, la direction monde du nez (local -Z), avec les 3 checkpoints en commentaire ((0,0)→(0,0,-1), (90°,0)→(0,1,0), (0,90°)→(-1,0,0)). `newton.ts` utilise désormais `const forward = forwardFromEuler(ship.rotation.x, ship.rotation.y)` — plus de sin/cos dans la boucle. Pourquoi pas `applyEuler` dans game/ : règle ARCHITECTURE « le cœur reste pur, zéro three.js » — d'où un helper pur TS. Vérifié : checkpoints rejoués en script (3/3 OK, vecteur de norme 1 à angles quelconques), `tsc --noEmit` propre hors démo, `GET /play` → 200, chunk servi contient `forwardFromEuler` et plus `forwardX`. Non commité : Thierry committera.
+
+**Appris / incidents** : rien de cassé. Leçon : la rotation 3D s'exprime proprement dans le repère local + délégation (applyEuler côté rendu, helper nommé côté jeu) — on n'écrit les formules qu'une seule fois, dans un fichier documenté.
+
+**Prochaine étape** : commit + push par Thierry. Ensuite : roulis (axe Z) pour finir le 6DOF, ou `stopPower` dédié.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-12 — Session 13 (suite 2) : frames.ts annulé (décision Thierry), bug caméra de poursuite en looping réparé
+
+**Fait** : (1) `frames.ts` créé puis **supprimé à la demande de Thierry** — la formule forward reste en ligne dans `newton.ts` (décision actée : pas de helper, pas de « triche »). (2) **Bug trouvé en jouant** : « au bout d'un moment la caméra passe brutalement en-dessous » — cause : l'offset caméra `(0,3,8)` subissait TOUTE la rotation du vaisseau (`applyEuler` sur l'Euler complet) ; `offset.y = 3·cos rx − 8·sin rx` devient négatif dès rx ≈ 20°, et comme la rotation dérive (jusqu'à 90° en ~1 s à fond sur Q), la caméra passait sous le vaisseau puis tournait autour. Fix dans `CameraRig.tsx` : la caméra n'hérite que du **cap** — `new Euler(0, ship.rotation.y, 0)`, offset `(0,0,8)` derrière + hauteur fixe `+3` en Y monde, `lookAt` 10 devant au niveau du vaisseau. Le vaisseau peut looper, la caméra reste derrière à hauteur fixe. Vérifié : `physics/` ne contient plus que `newton.ts`, `tsc --noEmit` propre hors démo, `GET /play` → 200, chunk servi : `forwardX` de retour, `forwardFromEuler` absent, `applyEuler` ×2 (offset + visée). Non commité : Thierry committera.
+
+**Appris / incidents** : un bug de caméra ne se voit qu'en jouant longtemps (dérive de la rotation) — la relecture de code ne suffit pas. Règle de conception retenue : la caméra de poursuite suit le cap, jamais le tangage/roulis (anti mal de mer, cf. VISION.md).
+
+**Prochaine étape** : commit + push par Thierry. Test visuel à refaire : maintenir Q plusieurs secondes — la caméra doit rester derrière, le vaisseau looper dans le champ. Ensuite : roulis (axe Z) ou `stopPower`.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-12 — Session 13 (suite 3) : la visée caméra suit le nez (tangage clampé ±45°), la position reste sûre
+
+**Fait** : Thierry signale qu'après le fix anti « caméra en-dessous », la caméra « ne bouge jamais sur le plan horizontal » quand on tangue — normal, la position n'hérite que du yaw. Séparation des rôles actée dans `CameraRig.tsx` : **position** = 8 derrière selon le yaw + hauteur fixe +3 (sûre, jamais sous le vaisseau) ; **visée** = suit le nez avec le tangage clampé à ±45° (`aimPitch`), donc la vue s'incline quand on tangue (le monde tourne visiblement) tout en gardant le vaisseau dans le champ et la caméra jamais basculée. Vérifié : fichier relu, `tsc --noEmit` propre hors démo, `GET /play` → 200, chunk servi contient `aimPitch`. Non commité : Thierry committera.
+
+**Appris / incidents** : la caméra de poursuite a deux rôles distincts — position (sûreté : yaw + hauteur fixe) et visée (sensation : suit le nez, tangage clampé). Aucun des deux ne doit hériter du roulis (horizon toujours nivelé, anti mal de mer).
+
+**Prochaine étape** : commit + push par Thierry. Test visuel : Q/E → la vue s'incline dans la limite de 45°, le vaisseau reste cadré, jamais de bascule. Ensuite : roulis (axe Z) ou `stopPower`.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-12 — Session 13 (suite 4) : caméra collée au repère du vaisseau (quaternion) — le tangage est suivi à l'infini, sans blocage
+
+**Fait** : Thierry signale que la visée clampée à ±45° « suivait un autre angle puis se bloquait » — normal : `rotation.x` dérive sans limite (rotation jamais freinée), donc 45° est atteint en ~0,5 s de Q et la visée restait bloquée pendant que le vaisseau continuait. Fix dans `CameraRig.tsx` : la caméra est désormais **collée au repère du vaisseau** (style Descent, conforme à VISION.md « cadrer sur le vaisseau, jamais sur le vide ») — `Quaternion.setFromEuler(rotation)` identique au modèle 3D, offset `(0,3,8)` en local via `applyQuaternion`, et `camera.quaternion.copy(q)` au lieu de `lookAt`. Le vaisseau est toujours centré, la vue suit l'angle réel (yaw + tangage) indéfiniment, aucun clamp. L'ancien bug « caméra en-dessous » venait du mélange position tournée + orientation restée horizontale (lookAt) ; avec les deux collées au même repère, ce mélange n'existe plus. Vérifié : fichier relu, `tsc` propre hors démo, `GET /play` → 200, chunk : `applyQuaternion` + `quaternion.copy` présents, `aimPitch` absent. Non commité : Thierry committera.
+
+**Appris / incidents** : historique des 3 approches caméra — (1) offset euler complet + lookAt monde → bascule sous le vaisseau ; (2) yaw-only + hauteur fixe → statique au tangage ; (3) visée clampée ±45° → bloque car rotation.x dérive sans borne ; (4) **retenue : caméra collée au repère vaisseau (quaternion)**. À noter pour plus tard : quand le roulis existera, l'horizon s'inclinera avec — à discuter (anti mal de mer VISION.md) : clamp éventuel du roulis caméra uniquement.
+
+**Prochaine étape** : commit + push par Thierry. Test visuel : maintenir Q 3-4 s — le vaisseau fait un looping complet, toujours centré, la vue tourne avec, aucun blocage. Ensuite : roulis (axe Z) ou `stopPower`.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-12 — Session 13 (suite 5) : FIN DE SESSION — état des lieux + 2 questions ouvertes pour la reprise
+
+**Fait** : état sauvegardé. MISSION 1 jouable en 6DOF partiel : Z/W poussée, S/↓ rétro, Espace frein auto (vecteur vitesse entier), ←/→ lacet, Q/E tangage ; poussée/rétro selon le nez (repère vaisseau, `forward` 3D dans `newton.ts`) ; caméra collée au repère du vaisseau (quaternion, vaisseau toujours centré, aucun blocage). Commité par Thierry : `5e4f44c FEAT: Rotation on Y` + `2934740 DOCS: update Architecture.md`. **Non commité** (8 fichiers, ~96 insertions) : tangage Q/E + poussée 3D + caméra quaternion. Vérifié ce soir : `tsc --noEmit` propre hors démo, `GET /play` → 200, chunks conformes.
+
+**Appris / incidents** : deux questions ouvertes laissées par Thierry pour la prochaine session : **(1)** la formule `forward = (-sin ry, sin rx·cos ry, -cos rx·cos ry)` dans `newton.ts` reste floue pour lui — à réexpliquer autrement (checkpoints : (0,0)→(0,0,-1), (90°,0)→(0,1,0), (0,90°)→(-1,0,0)) ; **(2)** la règle « zéro three.js dans `game/` » (ARCHITECTURE.md, « le cœur reste pur ») lui paraît « sans sens » — **décision actée qui lui appartient** : à discuter avec lui (autoriser `three` dans `game/physics/` ? compromis = testabilité/headless et cœur indépendant du rendu, vs. moins de maths écrites à la main). Ne pas trancher sans lui (charte règle 7).
+
+**Prochaine étape** : à la reprise — (a) Thierry committe + pushe le chantier en attente après test visuel (Q 3-4 s = looping complet cadré) ; (b) réexpliquer la formule `forward` et discuter la règle du cœur pur ; (c) ensuite roulis (axe Z, touches libres ex. A/D) pour finir le 6DOF, ou `stopPower` dédié pour le frein auto.
+
+**Règle du projet** : une session = une victoire.
