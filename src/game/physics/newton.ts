@@ -4,16 +4,34 @@ import { state } from "../core/state";
 // It is the ONLY module in the whole game allowed to write `position`.
 export function updateShips(dt: number): void {
   for (const ship of state.ships) {
-    // Each ship reads ITS OWN intent from its sheet. Forward = -z, backward = +z.
-    // Both are 0-1 intentions — no if needed, multiplying by 0 does nothing.
-    ship.velocity.z -= ship.intent.thrust * ship.thrustPower * dt;
-    ship.velocity.z += ship.intent.brake * ship.brakePower * dt;
+    // The ship's own forward axis: world -Z rotated around Y by the ship's
+    // rotation (yaw only for now). Thrust pushes along the nose, not the world.
+    const ry = ship.rotation.y;
+    const forwardX = -Math.sin(ry);
+    const forwardZ = -Math.cos(ry);
 
-    // Auto-brake (Space): decelerate toward 0 and stop there — never reverses.
+    // Each ship reads ITS OWN intent from its sheet.
+    // Both are 0-1 intentions — no if needed, multiplying by 0 does nothing.
+    ship.velocity.x += forwardX * ship.intent.thrust * ship.thrustPower * dt;
+    ship.velocity.z += forwardZ * ship.intent.thrust * ship.thrustPower * dt;
+    ship.velocity.x -= forwardX * ship.intent.brake * ship.brakePower * dt;
+    ship.velocity.z -= forwardZ * ship.intent.brake * ship.brakePower * dt;
+
+    // Auto-brake (Space): decelerate the WHOLE velocity toward 0, stop there —
+    // never reverses, whatever the direction of travel.
     if (ship.intent.stop > 0) {
       const decel = ship.brakePower * dt;
-      if (Math.abs(ship.velocity.z) <= decel) ship.velocity.z = 0;
-      else ship.velocity.z -= Math.sign(ship.velocity.z) * decel;
+      const v = Math.hypot(ship.velocity.x, ship.velocity.y, ship.velocity.z);
+      if (v <= decel) {
+        ship.velocity.x = 0;
+        ship.velocity.y = 0;
+        ship.velocity.z = 0;
+      } else {
+        const k = (v - decel) / v;
+        ship.velocity.x *= k;
+        ship.velocity.y *= k;
+        ship.velocity.z *= k;
+      }
     }
 
     // Speed cap: clamp the velocity length, keeping its direction.
@@ -32,7 +50,9 @@ export function updateShips(dt: number): void {
 
     // Rotation: same newtonian law on the angular axis — the intent accelerates
     // angularVelocity, capped at maxTurnRate; released, the ship keeps turning.
-    ship.angularVelocity.y += (ship.intent.yawRight - ship.intent.yawLeft) * ship.turnPower * dt;
+    // yawLeft must turn the nose LEFT on screen: positive rotation.y = left
+    // (the nose -Z goes toward -X, which is screen-left for our camera).
+    ship.angularVelocity.y += (ship.intent.yawLeft - ship.intent.yawRight) * ship.turnPower * dt;
     if (ship.angularVelocity.y > ship.maxTurnRate) ship.angularVelocity.y = ship.maxTurnRate;
     if (ship.angularVelocity.y < -ship.maxTurnRate) ship.angularVelocity.y = -ship.maxTurnRate;
     ship.rotation.x += ship.angularVelocity.x * dt;

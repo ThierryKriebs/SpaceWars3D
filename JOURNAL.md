@@ -157,3 +157,27 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : commit + push par Thierry. Ensuite au choix : tangage/roulis (à discuter pour les touches : ↑/↓, Z/S sont déjà pris par poussée/rétro) ou un `stopPower` dédié pour le frein auto (Espace).
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-12 — Session 12 : le vaisseau vole dans la direction où il regarde (poussée en référentiel local + caméra de cap)
+
+**Fait** : point 1 appliqué — `newton.ts` calcule l'axe avant du vaisseau (`forward = -Z` tourné de `rotation.y`, lacet seul pour l'instant) et applique poussée/rétro dessus ; le frein auto (Espace) freine désormais le vecteur vitesse ENTIER vers 0 (plus seulement `z`). `CameraRig.tsx` place la caméra 8 unités derrière selon l'axe arrière propre du vaisseau et vise 10 unités devant selon son axe avant. À `rotation.y = 0` le comportement est identique à avant. Vérifié : `tsc --noEmit` sans erreur hors démo ; `GET /play` → 200 ; le chunk servi contient `forwardX`/`backX`/`sin(ry)`. Note de cohérence (règle 8) : le croquis d'ARCHITECTURE.md (~l. 511) montre une poussée sur `velocity.z` (cadre monde) — c'est exactement le cas `rotation.y = 0` ; le code va plus loin (cadre vaisseau), le principe « intentions, pas clavier » est inchangé. Non commité : Thierry committera.
+
+**Appris / incidents** : (1) l'en-tête de commentaire de `CameraRig.tsx` a encore sauté à l'application (relire le fichier ENTIER après chaque application — fait, corrigé, re-vérifié). (2) **bug de signe du lacet, attrappé en jouant par Thierry** (« quand je tourne à gauche ça va à droite ») : `angularVelocity.y` utilisait `(yawRight - yawLeft)` alors qu'en right-handed three.js une rotation Y POSITIVE tourne le nez (-Z) vers -X = la gauche de l'écran pour notre caméra. Corrigé en `(yawLeft - yawRight)` dans `newton.ts` (le bug venait de la session 11, il est devenu visible avec la caméra de cap). Re-vérifié : `tsc` propre hors démo, `GET /play` → 200, chunk servi contient `yawLeft - yawRight` et plus l'ancien signe. Conséquence gameplay : la rotation dérivant sans frein, un vaisseau qui pousse en tournant décrit des courbes — c'est le 6DOF voulu (VISION.md). Leçon : un signe d'axe ne se vérifie qu'en jouant, pas à la relecture.
+
+**Prochaine étape** : commit + push par Thierry. Ensuite : tangage (axe X) ou roulis (axe Z) — touches à choisir (↑/↓ et Z/S sont pris) — puis généraliser `forward` aux 3 axes quand les 3 rotations existeront. Alternative : `stopPower` dédié pour le frein auto.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-12 — Session 12 (suite) : CameraRig réécrit en `applyEuler` (repère local, zéro sin/cos)
+
+**Fait** : `CameraRig.tsx` réécrit — la caméra est exprimée dans le repère propre du vaisseau (`new Vector3(0, 3, 8)` = 3 au-dessus, 8 derrière) et `applyEuler(new Euler(ship.rotation...))` applique la rotation du vaisseau à ce vecteur, comme three.js le fait pour le modèle ; `lookAt` idem avec `(0, 0, -10)` (10 devant le nez). À lacet seul, produit exactement les mêmes nombres que l'ancien `backX/backZ` (vérifié : `R_y(θ)·(0,3,8) = (8 sinθ, 3, 8 cosθ)`). Avantage : généralise seule au tangage/roulis. Vérifié : `tsc --noEmit` propre hors démo, `GET /play` → 200, chunk servi contient `applyEuler` et plus `backX`. Non commité : Thierry committera.
+
+**Appris / incidents** : l'import `import { Euler, Vector3 } from "three"` a encore sauté quand deux éditions du même fichier ont été lancées en parallèle — **leçon : une seule édition à la fois par fichier, puis relecture entière**. Discussion géométrie avec Thierry (cercle trigo, placement de Z, cos sur Z car angle mesuré depuis +Z) : la version `applyEuler` contourne la question — on raisonne en repère local, three.js fait la conversion.
+
+**Prochaine étape** : commit + push par Thierry (point 1 + fix signe lacet + CameraRig applyEuler). Ensuite : tangage ou roulis.
+
+**Règle du projet** : une session = une victoire.
