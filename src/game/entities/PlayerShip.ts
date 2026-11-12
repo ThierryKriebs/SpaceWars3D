@@ -14,7 +14,6 @@ export function spawnPlayer(): void {
     maxSpeed: 30,
   };
   state.ships.push(player);
-  console.log("[PlayerShip] spawned at origin");
 }
 
 // The player actor decides: copies the global input into ITS OWN intent.

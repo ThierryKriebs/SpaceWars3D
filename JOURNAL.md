@@ -133,3 +133,15 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : demain — appliquer la simplification de Entities, retirer les logs de debug, commit + push. Ensuite au choix : rotations du vaisseau (tangage/lacet/roulis) ou autre.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-12 — Session 10 : la simplification est appliquée (spawn au chargement du module, miroir en map simple)
+
+**Fait** : modifications retenues de la session 9 appliquées — `src/game/core/loop.ts` spawne le joueur et branche le clavier au chargement du module (`attachKeyboard(); spawnPlayer();` en top-level, `Loop.started` supprimé, log `[GameLoop]` retiré) ; `src/components/game/Entities.tsx` réduit à un simple `state.ships.map(...)` (useState/useEffect/useFrame de détection de spawn supprimés, logs `[Entities]` retirés) ; log `[PlayerShip]` retiré. Vérifié : `tsc --noEmit` sans erreur hors démo Terre2065 ; `GET /play` → 200 ; le chunk app servi par le serveur dev contient `ships.map` et ne contient plus `ships.slice`, `started`, ni aucun log de debug. Non commité : Thierry committera.
+
+**Appris / incidents** : rien de cassé. ARCHITECTURE.md relu (règle 8) : la version simplifiée est PLUS conforme au doc (« Entities qui mappe l'état », « pur miroir ») que l'ancien détecteur de spawn — aucune incohérence à corriger. Limite connue et acceptée du map simple : un vaisseau spawné APRÈS le premier rendu (NPC futur) n'apparaîtra pas à l'écran — à traiter le jour venu via le carrefour d'événements. Le commentaire du cast `as keyof typeof modelRegistry` a été conservé tel quel.
+
+**Prochaine étape** : commit + push par Thierry. Ensuite au choix : rotations du vaisseau (tangage/lacet/roulis — schéma 6DOF de VISION.md, ex. Descent) ou un `stopPower` dédié pour le frein auto (Espace) au lieu d'emprunter `brakePower`.
+
+**Règle du projet** : une session = une victoire.
