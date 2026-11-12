@@ -4,36 +4,106 @@ La carte du chantier : qui va où, et pourquoi. Les dossiers naissent quand leur
 
 > **⚠️ DOCUMENT CONTRAIGNANT POUR TOUT AGENT DE CODAGE.**
 > Ce fichier décrit l'architecture *actée* du projet. Chaque décision qui y figure (les principes, l'arbre, les règles de circulation, les contradictions tranchées) a été débattue et validée par Thierry — elle n'est **pas négociable, pas "améliorable", pas optionnelle**. Avant de créer un fichier ou un dossier, tu dois pouvoir répondre à : *"dans ce document, où est-ce que ça va ?"* Si la réponse n'y figure pas : **demande, ne devine pas** (charte, règle 4). Si un besoin te semble exiger de violer une règle ci-dessous : **arrête-toi et expose le conflit** (charte, règle 7). Ce document évolue par décision écrite ici d'abord, code ensuite.
+ 
 
 ---
 
 ## Sommaire
 
-1. [Les cinq grands principes](#sec-01) — la constitution du projet.
-2. [L'arborescence cible](#sec-02) — qui va où, l'arbre complet annoté.
-3. [Exemple concret](#sec-03) — un niveau JSON décortiqué.
-4. [`Scene.tsx`](#sec-04) — le cadre et la troupe.
-5. [`game/core`](#sec-05) — le cœur et le tour d'une frame.
-6. [Qui rafraîchit l'écran ?](#sec-06) — le bouton et la machine, les deux boucles.
-7. [`state.ts`](#sec-07) — où vivent les propriétés des objets, et comment le 3D les relit.
-8. [`events.ts`](#sec-08) — le carrefour des événements (publier / s'abonner).
-9. [`controls/`](#sec-09) — les entrées : capter, traduire, écrire.
-10. [`game/physics/`](#sec-10) — les lois du monde : newton exécute, gravity fait subir, collisions arbitrent.
-11. [`game/weapons/`](#sec-11) — les comportements d'armes : la coque porte, le comportement sert — le projectile, lui, est une entité.
-12. [`game/capabilities/`](#sec-12) — les capacités (ex-ai/) : voir (cônes, raycast), esquiver, se battre — les rôles nommés assemblent.
-13. [`levels/`](#sec-13) — le plateau : `data/` (les niveaux JSON), `roles/` (ex-brains/ : les rôles nommés), `index.ts` (le régisseur) — un niveau se décrit, il ne se code plus.
-14. [`missions/`](#sec-14) — le déroulé : des scripts-oreilles au carrefour — déclencheurs → dialogues, spawns. Le niveau installe, la mission raconte.
-15. [`types/`](#sec-15) — le dictionnaire : les contrats partagés — un barrel (`index.ts`), des fichiers par genre ; Zod aux portes, le jour de l'éditeur.
-16. [Le fond du monde](#sec-16) — l'environnement en trois exemples.
-17. [Où va quoi](#sec-17) — le tableau de correspondance.
-18. [Règles de circulation](#sec-18) — les imports et leurs sens uniques.
-19. [Les contradictions futures, déjà tranchées](#sec-19) — les débats clos d'avance.
-20. [La démo Terre 2065](#sec-20) — son statut de référence visuelle.
-21. [Ce qui n'existe pas encore](#sec-21) — et pourquoi c'est voulu.
+1. [Le fonctionnement en un schéma](#sec-01) — le cadre, ses blocs, le cœur et les miroirs — la décharge d’esprit, avant l’arbre.
+2. [Les cinq grands principes](#sec-02) — la constitution du projet.
+3. [L'arborescence cible](#sec-03) — qui va où, l'arbre complet annoté.
+4. [Exemple concret](#sec-04) — un niveau JSON décortiqué.
+5. [`Scene.tsx`](#sec-05) — le cadre et la troupe.
+6. [`game/core`](#sec-06) — le cœur et le tour d'une frame.
+7. [Qui rafraîchit l'écran ?](#sec-07) — le bouton et la machine, les deux boucles.
+8. [`state.ts`](#sec-08) — où vivent les propriétés des objets, et comment le 3D les relit.
+9. [`events.ts`](#sec-09) — le carrefour des événements (publier / s'abonner).
+10. [`controls/`](#sec-10) — les entrées : capter, traduire, écrire.
+11. [`game/physics/`](#sec-11) — les lois du monde : newton exécute, gravity fait subir, collisions arbitrent.
+12. [`game/weapons/`](#sec-12) — les comportements d'armes : la coque porte, le comportement sert — le projectile, lui, est une entité.
+13. [`game/capabilities/`](#sec-13) — les capacités (ex-ai/) : voir (cônes, raycast), esquiver, se battre — les rôles nommés assemblent.
+14. [`levels/`](#sec-14) — le plateau : `data/` (les niveaux JSON), `roles/` (ex-brains/ : les rôles nommés), `index.ts` (le régisseur) — un niveau se décrit, il ne se code plus.
+15. [`missions/`](#sec-15) — le déroulé : des scripts-oreilles au carrefour — déclencheurs → dialogues, spawns. Le niveau installe, la mission raconte.
+16. [`types/`](#sec-16) — le dictionnaire : les contrats partagés — un barrel (`index.ts`), des fichiers par genre ; Zod aux portes, le jour de l'éditeur.
+17. [Le fond du monde](#sec-17) — l'environnement en trois exemples.
+18. [Où va quoi](#sec-18) — le tableau de correspondance.
+19. [Règles de circulation](#sec-19) — les imports et leurs sens uniques.
+20. [Les contradictions futures, déjà tranchées](#sec-20) — les débats clos d'avance.
+21. [La démo Terre 2065](#sec-21) — son statut de référence visuelle.
+22. [Ce qui n'existe pas encore](#sec-22) — et pourquoi c'est voulu.
 
 ---
 
 <a id="sec-01"></a>
+
+## Le fonctionnement en un schéma — la décharge d’esprit
+
+Un schéma **Mermaid** avec les vrais noms du code, tel qu’il existe aujourd’hui — GitHub le dessine nativement, plus jamais de décalage de police. Convention : **fichiers en gras avec leur extension**, méthodes avec leurs parenthèses `updatePlayer()`, composants entre chevrons `<GameLoop />`. Les explications suivent le dessin.
+
+```mermaid
+flowchart TD
+    page["page.tsx"] -->|"dynamic(ssr:false)"| scene["Scene.tsx"]
+    scene -->|"pose le cadre"| canvas
+    scene -->|"branche une fois"| loop["loop.ts · Loop.tick(delta) · pas fixe 1/60"]
+    subgraph canvas["&lt;Canvas /&gt;"]
+        gl["&lt;GameLoop /&gt; (porte-crochet)"]
+        cam["&lt;CameraRig.tsx /&gt;"]
+        ent["&lt;Entities.tsx /&gt;"]
+        space["&lt;Space /&gt;"]
+        sun["&lt;Sun /&gt;"]
+        earth["&lt;Earth /&gt;"]
+    end
+    gl -.->|"techniquement : son useFrame appelle Loop.tick()"| loop
+    loop -->|"attachKeyboard() : une fois"| kb["keyboard.ts (controls/)"]
+    kb -->|"à chaque touche : écrit state.input"| state[("state.ts")]
+    loop -->|"à chaque rendu"| ps["PlayerShip.ts · updatePlayer()"]
+    loop -->|"à chaque rendu"| nt["newton.ts · updateShips(STEP)"]
+    ps -->|"écrit"| state
+    nt -->|"écrit"| state
+    ent -->|"lisent"| state
+    cam -->|"lisent"| state
+    ent -->|"met à jour chaque objet : position.set(), rotation.set()"| obj3d["objets 3D — three.js (THREE.Group)"]
+    cam -->|"place la caméra : position.set(), lookAt()"| obj3d
+    obj3d -->|"r3f peint l'écran, image par image"| screen["📱 écran"]
+
+    %% Couleurs : orange = écrit la photo · bleu = lit la photo · vert = recopie en 3D · gris pointillé = détail technique
+    linkStyle 3 stroke:#999999,stroke-dasharray:5
+    linkStyle 5 stroke:#e76f51
+    linkStyle 8 stroke:#e76f51
+    linkStyle 9 stroke:#e76f51
+    linkStyle 10 stroke:#457b9d
+    linkStyle 11 stroke:#457b9d
+    linkStyle 12 stroke:#2a9d8f
+    linkStyle 13 stroke:#2a9d8f
+    linkStyle 14 stroke:#8d5bb8,stroke-width:2px
+    style state fill:#fff3cd,stroke:#b8860b,stroke-width:2px
+    style space fill:#f0f0f0,stroke:#bbbbbb,color:#777777
+    style sun fill:#f0f0f0,stroke:#bbbbbb,color:#777777
+    style earth fill:#f0f0f0,stroke:#bbbbbb,color:#777777
+    style obj3d fill:#e8f6ef,stroke:#2a9d8f
+    style screen fill:#efe6f7,stroke:#8d5bb8
+```
+
+Couleurs du schéma : **orange** = écrit dans `state.ts` (le cœur et le clavier) · **bleu** = lit la photo (les miroirs) · **vert** = recopie dans les objets 3D de three.js · **gris pointillé** = détail technique (le `useFrame()` de `<GameLoop />` porte l’appel) · **violet** = le rendu final : r3f peint les objets 3D à l’écran, image par image.
+
+**À lire, dans l’ordre des flèches :**
+
+1. **`page.tsx`** branche la scène (`ssr:false`) et n’existe plus. Une seule URL : `/play`.
+2. **`Scene.tsx`** n’a AUCUNE méthode — deux gestes, deux flèches : à gauche il **pose le cadre** — `<Canvas />` et ses blocs ; à droite il **branche UNE FOIS** le cœur — `Loop.tick()` (techniquement : le `useFrame()` de `<GameLoop />` enregistre l’appel, et le premier `tick()` prépare le monde — `attachKeyboard()`, `spawnPlayer()`).
+3. **`loop.ts`**, à CHAQUE rendu : l’accumulateur découpe le temps en **pas fixes** (`STEP = 1/60`), et à chaque pas il appelle deux composants : **`PlayerShip.ts`** → `updatePlayer()` (l’acteur décide — intentions dans la photo) puis **`newton.ts`** → `updateShips(STEP)` (le SEUL écrivain de position). **`collisions.ts`** et **`events.ts`** s’inséreront entre les deux le jour venu.
+4. **`keyboard.ts`** (dans `controls/`) : branché **UNE fois** par le premier `tick()` — `attachKeyboard()`. Puis il ne vit que par ses événements : **à chaque touche** enfoncée/relâchée, il écrit directement `state.input` (`thrust`, `brake`, `yawLeft`… — des intentions 0-1, jamais des mouvements : le jeu ne voit jamais les touches).
+
+5. **Les blocs du `<Canvas />`** : `<GameLoop />` (le porte-crochet), `<CameraRig.tsx />` et `<Entities.tsx />` (les miroirs), et le décor empilé `<Space />`, `<Sun />`, `<Earth />` (aucun `useFrame()` : il ne bouge pas).
+6. **Qui écrit dans `state.ts` ? Le cœur et le clavier, personne d’autre** : `updatePlayer()`, `updateShips()` à chaque pas fixe, et `keyboard.ts` à chaque touche. Aucun bloc du `<Canvas />` n’y touche jamais.
+7. **Les miroirs ont DEUX flèches, et c’est le point clé** : la première **lit** la photo (`state.ts`) ; la seconde **met à jour les objets 3D de three.js** — `<Entities.tsx />` fait `position.set()` / `rotation.set()` sur chaque `THREE.Group`, `<CameraRig.tsx />` place la caméra (`position.set()`, `lookAt()`). Lire sans recopier n’afficherait rien : la seconde flèche EST l’affichage.
+8. **`state.ts`** (le hub) : écrit par le cœur et le clavier, lu par les miroirs, qui recopient vers les objets 3D. **Une seule direction de circulation.**
+
+**La règle d’or : la scène pose le cadre et branche le cœur une fois ; à chaque rendu le cœur appelle ses composants et écrit la photo ; les miroirs la recopient en 3D ; `state.ts` est le seul pont.**
+
+---
+
+<a id="sec-02"></a>
 
 ## Les cinq grands principes
 
@@ -45,7 +115,7 @@ La carte du chantier : qui va où, et pourquoi. Les dossiers naissent quand leur
 
 ---
 
-<a id="sec-02"></a>
+<a id="sec-03"></a>
 
 ## L'arborescence cible
 
@@ -165,7 +235,7 @@ src/
 
 ---
 
-<a id="sec-03"></a>
+<a id="sec-04"></a>
 
 ## Exemple concret — que contiendrait `levels/data/station-defense.json` ?
 
@@ -217,7 +287,7 @@ src/
 
 ---
 
-<a id="sec-04"></a>
+<a id="sec-05"></a>
 
 ## `Scene.tsx` — le cadre et la troupe
 
@@ -242,7 +312,7 @@ function Scene() {
 
 ---
 
-<a id="sec-05"></a>
+<a id="sec-06"></a>
 
 ## `game/core` — le cœur, et le tour d'une frame
 
@@ -263,7 +333,7 @@ loop (le cœur bat, pas fixe)
 
 ---
 
-<a id="sec-06"></a>
+<a id="sec-07"></a>
 
 ## Qui rafraîchit l'écran ? — le bouton et la machine
 
@@ -295,7 +365,7 @@ Conséquence : *"le miroir relit la photo"* n'est pas un événement que quelqu'
 
 ---
 
-<a id="sec-07"></a>
+<a id="sec-08"></a>
 
 ## `state.ts` — où vivent les propriétés, et comment le 3D les relit
 
@@ -375,7 +445,7 @@ La chaîne, toujours la même phrase :
 
 ---
 
-<a id="sec-08"></a>
+<a id="sec-09"></a>
 
 ## `game/core/events.ts` — le carrefour des événements
 
@@ -418,7 +488,7 @@ on(e => { if (e.type === "enemy:death") mission.complete("destroy-patrol"); }); 
 
 ---
 
-<a id="sec-09"></a>
+<a id="sec-10"></a>
 
 ## `game/controls/` — les entrées : capter, traduire, écrire
 
@@ -458,7 +528,7 @@ input: { thrust: false, fire: false }
 ---
 
 
-<a id="sec-10"></a>
+<a id="sec-11"></a>
 
 ## `game/physics/` — les lois du monde : newton, collisions, gravity
 
@@ -538,7 +608,7 @@ Pourquoi "plus tard" : aucune mission n'en a besoin avant d'avoir des choses AUT
 ---
 
 
-<a id="sec-11"></a>
+<a id="sec-12"></a>
 
 ## `game/weapons/` — les comportements d'armes : la coque porte, le comportement sert
 
@@ -605,7 +675,7 @@ En une phrase : **une entité est une coque qui porte des comportements — cerv
 ---
 
 
-<a id="sec-12"></a>
+<a id="sec-13"></a>
 
 ## `game/capabilities/` — les capacités : voir, esquiver, se battre
 
@@ -647,7 +717,7 @@ En une phrase : **un `NpcShip` sans cerveau dérive ; avec `patrol-route` il pat
 ---
 
 
-<a id="sec-13"></a>
+<a id="sec-14"></a>
 
 ## `levels/` — le plateau : `data/`, `roles/`, `index.ts`
 
@@ -711,7 +781,7 @@ levels/data/xxx.json ──"role": "patrol-route"──▶ levels/roles/ ──i
 ---
 
 
-<a id="sec-14"></a>
+<a id="sec-15"></a>
 
 ## `missions/` — le déroulé : la mission raconte
 
@@ -756,7 +826,7 @@ le récit                      : jamais dans le code des acteurs — dans les sc
 ---
 
 
-<a id="sec-15"></a>
+<a id="sec-16"></a>
 
 ## `types/` — le dictionnaire : les contrats partagés
 
@@ -796,7 +866,7 @@ import type { NpcSheet, InputIntent, GameEvent } from "@/types";  // la porte, j
 
 ---
 
-<a id="sec-16"></a>
+<a id="sec-17"></a>
 
 ## Le fond du monde — `environment/` en trois exemples
 
@@ -829,7 +899,7 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 
 ---
 
-<a id="sec-17"></a>
+<a id="sec-18"></a>
 
 ## Où va quoi — le tableau de correspondance
 
@@ -850,7 +920,7 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 | Le scénario d'une mission | `game/missions/` |
 | Un type partagé (contrat, interface) | `types/` — tout passe par le barrel `index.ts`, jamais par un fichier de genre en direct |
 
-<a id="sec-18"></a>
+<a id="sec-19"></a>
 
 ## Règles de circulation
 
@@ -860,7 +930,7 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 4. **Pas de dossier par niveau, pas de boucle par niveau** : un niveau = un JSON + éventuellement un cerveau de mission. Toute ressemblance entre deux niveaux = données partagées, jamais code copié.
 5. Un niveau qui a besoin de code custom = un champ `"script"` dans son JSON qui référence `game/missions/`.
 
-<a id="sec-19"></a>
+<a id="sec-20"></a>
 
 ## Les contradictions futures, déjà tranchées
 
@@ -879,13 +949,13 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 - **Éditeur de niveaux futur** : une page `app/editor/` qui lit et écrit des JSON de `game/levels/data/` — l'architecture le rend presque gratuit.
 - **VR future** : `controls/` gagne une entrée WebXR ; le reste ne sait même pas que ça existe.
 
-<a id="sec-20"></a>
+<a id="sec-21"></a>
 
 ## La démo Terre 2065 — statut
 
 Démo historique générée automatiquement (2 fichiers : `app/terre2065/page.tsx` + `components/Terre2065.tsx`), conservée **telle quelle** comme référence visuelle, amenée à disparaître quand `/play` l'aura rattrapée. Elle n'est **pas** une référence d'architecture : tout nouveau code suit la cible ci-dessus, sans renommage ni maintenance de la démo. Plan d'exécution et calendrier : voir `JOURNAL.md`.
 
-<a id="sec-21"></a>
+<a id="sec-22"></a>
 
 ## Ce qui n'existe PAS encore (et c'est voulu)
 
@@ -893,4 +963,4 @@ Multi (serveur), éditeur de niveaux, sauvegardes, VR : aucun dossier. Ils viend
 
 ---
 
-*Dernière mise à jour : 9 nov. 2026. Toute évolution de la structure se note ici AVANT d'être codée.*
+*Dernière mise à jour : 12 nov. 2026. Toute évolution de la structure se note ici AVANT d'être codée.*
