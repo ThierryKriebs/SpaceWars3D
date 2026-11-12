@@ -145,3 +145,15 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : commit + push par Thierry. Ensuite au choix : rotations du vaisseau (tangage/lacet/roulis — schéma 6DOF de VISION.md, ex. Descent) ou un `stopPower` dédié pour le frein auto (Espace) au lieu d'emprunter `brakePower`.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-12 — Session 11 : premier axe de rotation — le lacet avec ←/→ (MISSION 1, 6DOF axe par axe)
+
+**Fait** : lacet (rotation Y) branché de bout en bout — `InputIntent` gagne `yawLeft`/`yawRight` (0-1), `ShipSheet` gagne `angularVelocity` + `turnPower` (3 rad/s²) + `maxTurnRate` (1,5 rad/s ≈ 86°/s), `state.input` initialisé, `keyboard.ts` capte ArrowLeft/ArrowRight (keydown + keyup), `updatePlayer()` recopie vers l'intent du joueur, `newton.ts` intègre la rotation (accélération angulaire plafonnée, puis `rotation += angularVelocity × dt` — la dérive rotationnelle est conservée quand on relâche, conforme à VISION.md). Aucun changement côté rendu : `ShipMirror` recopiait déjà `rotation` vers le 3D. Vérifié : `tsc --noEmit` sans erreur hors démo ; `GET /play` → 200 ; le chunk app servi contient `yawLeft`, `angularVelocity`, `ArrowLeft` (hot reload OK). ARCHITECTURE.md relu (règle 8) : le doc prévoyait déjà `yaw` dans `InputIntent` (lignes 160, 254, 469) — aucune incohérence. Non commité : Thierry committera.
+
+**Appris / incidents** : deux lignes perdues en route, toutes deux attrapées par Thierry à la relecture — (1) les 2 lignes `keydown` ArrowLeft/ArrowRight (seul le `keyup` était posé), (2) les 2 recopies `player.intent.yawLeft/yawRight` dans `updatePlayer()` (sans elles, l'intent du joueur ne recevait jamais le lacet et `tsc` ne disait rien car il ne s'agit que d'assignations). Corrigé, re-vérifié à chaque fois : `tsc --noEmit` propre hors démo, chunk servi contient keydown + keyup + les recopies + le terme newton `yawRight - yawLeft`. Leçon : après une application, relire le fichier entier, pas seulement le diff. Comportement connu pour l'instant : `CameraRig` reste alignée sur le monde et ne suit pas le cap du vaisseau — le lacet se voit parce que le vaisseau pivote sous la caméra. À enrichir plus tard (caméra suiveuse de cap) si demandé.
+
+**Prochaine étape** : commit + push par Thierry. Ensuite au choix : tangage/roulis (à discuter pour les touches : ↑/↓, Z/S sont déjà pris par poussée/rétro) ou un `stopPower` dédié pour le frein auto (Espace).
+
+**Règle du projet** : une session = une victoire.

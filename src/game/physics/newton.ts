@@ -29,5 +29,14 @@ export function updateShips(dt: number): void {
     ship.position.x += ship.velocity.x * dt;
     ship.position.y += ship.velocity.y * dt;
     ship.position.z += ship.velocity.z * dt;
+
+    // Rotation: same newtonian law on the angular axis — the intent accelerates
+    // angularVelocity, capped at maxTurnRate; released, the ship keeps turning.
+    ship.angularVelocity.y += (ship.intent.yawRight - ship.intent.yawLeft) * ship.turnPower * dt;
+    if (ship.angularVelocity.y > ship.maxTurnRate) ship.angularVelocity.y = ship.maxTurnRate;
+    if (ship.angularVelocity.y < -ship.maxTurnRate) ship.angularVelocity.y = -ship.maxTurnRate;
+    ship.rotation.x += ship.angularVelocity.x * dt;
+    ship.rotation.y += ship.angularVelocity.y * dt;
+    ship.rotation.z += ship.angularVelocity.z * dt;
   }
 }

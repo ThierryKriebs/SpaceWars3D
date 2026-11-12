@@ -13,8 +13,11 @@ export interface ShipSheet {
   position: Vec3;
   velocity: Vec3;
   rotation: Vec3;
+  angularVelocity: Vec3; // rad/s per axis — rotation drifts too (inertia)
   intent: InputIntent; // this ship's OWN intentions — never the global input
   thrustPower: number;
   brakePower: number; // retro-thrust power (backward)
+  turnPower: number; // angular acceleration around Y (rad/s²)
+  maxTurnRate: number; // cap on angular velocity (rad/s)
   maxSpeed: number;
 }
