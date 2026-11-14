@@ -4,7 +4,6 @@ La carte du chantier : qui va où, et pourquoi. Les dossiers naissent quand leur
 
 > **⚠️ DOCUMENT CONTRAIGNANT POUR TOUT AGENT DE CODAGE.**
 > Ce fichier décrit l'architecture *actée* du projet. Chaque décision qui y figure (les principes, l'arbre, les règles de circulation, les contradictions tranchées) a été débattue et validée par Thierry — elle n'est **pas négociable, pas "améliorable", pas optionnelle**. Avant de créer un fichier ou un dossier, tu dois pouvoir répondre à : *"dans ce document, où est-ce que ça va ?"* Si la réponse n'y figure pas : **demande, ne devine pas** (charte, règle 4). Si un besoin te semble exiger de violer une règle ci-dessous : **arrête-toi et expose le conflit** (charte, règle 7). Ce document évolue par décision écrite ici d'abord, code ensuite.
- 
 
 ---
 
@@ -573,6 +572,14 @@ L'ordre entre acteurs et gravity importe peu (additionner 2 + 3 ou 3 + 2, même 
 | `0.5` | quasi instantané — arcade total |
 
   Le degré d'amortissement est un curseur PAR VAISSEAU dans le JSON : un chasseur vif amortit vite, un vaisseau capital tourne lourd et glisse longtemps sur sa rotation.
+
+**Pourquoi `newton.ts` n'utilise pas three.js** (décision du 14 nov.) : le serment de `game/` — newton ne connaît que des nombres (`x, y, z, vx…`), jamais un objet 3D. Trois pièges évités :
+
+1. **Le bug des deux vérités** : si la physique touchait l'objet three, la position existerait deux fois (fiche ET maquette) — tirs qui passent à côté à l'écran, collisions fausses, vaisseaux qui tremblent. Introuvable, car chaque partie semble correcte seule.
+2. **Le rythme dicté par l'écran** : newton tourne à pas fixe 60/s, l'écran peint à 60, 100 ou 144 Hz. Si newton touchait three, le monde irait 2× trop vite sur un écran 120 Hz — le pas fixe n'existerait plus vraiment.
+3. **Le noyau pur** : sans three, le monde tourne sans écran — tests Node en deux lignes, `JSON.stringify(state)` pour la sauvegarde et le replay, éditeur de niveaux et multijoueur possibles. Un `import "three"` dans `game/` = bug d'architecture (three.js fait le rendu, pas la simulation ; les miroirs ont le métier inverse : recopier).
+
+En court : la séparation coûte ~5 lignes de miroir **une fois**, au début ; la fusion coûte petit au début, puis **à chaque ajout** — et certains bugs n'ont pas de prix parce qu'ils ne se voient pas.
 
 ```ts
 // newton.ts — les intentions deviennent mouvement. LUI SEUL écrit position.
