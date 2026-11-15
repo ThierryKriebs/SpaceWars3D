@@ -337,3 +337,15 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : test visuel sur `localhost:3000/play`, puis commit + push par Thierry (tout le chantier de la session 14 : roulis, KEYMAP, stopSpin renommé, docs, journal). Ensuite au choix : `stopPower` dédié pour le frein auto (Espace), `angularDamping`, ou autre.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-15 — Session 14 (suite 7) : décision Thierry — PAS d'amortissement automatique de la rotation ; docs corrigés ; playtest OK
+
+**Fait** : playtest de Thierry sur `/play` — **toutes les touches répondent correctement** (signes validés en jeu, roulis compris). Décision Thierry actée : la rotation ne s'amortit JAMAIS toute seule — la décision du 9 nov. (`angularDamping`, stabilisateurs) était une erreur, annulée le 15 nov. Docs corrigés en conséquence (règle 8) : ARCHITECTURE.md (commentaire d'arbre newton.ts, §newton — paragraphe angularDamping remplacé par « rotation inertielle pure, frein explicite stopAllRotation uniquement », exemple de code sans la ligne `*= angularDamping`, §20 « tranché le 15 nov. : pas de stabilisateurs, arrêt manuel uniquement ») et VISION.md (ligne 10 : assistance de vol = translation seule, jamais la rotation ; ligne 161 : frottement optionnel sur la translation seule — la ligne 25 « jamais la rotation » était déjà conforme). Le code était déjà conforme (aucun amortissement dans `newton.ts`) : aucun fichier de code modifié. Vérifié : plus aucune occurrence de `angularDamping`/stabilisateur dans les docs ni `src/`. Non commité : Thierry committera.
+
+**Appris / incidents** : rien de cassé. Le frein de rotation reste manuel et explicite : Maj (`stopAllRotation`) décélère `angularVelocity` vers 0 ; relâché, la dérive rotationnelle repart — comportement voulu.
+
+**Prochaine étape** : commit + push par Thierry (tout le chantier session 14). Ensuite au choix : `stopPower` dédié pour le frein auto (Espace), ou clôture de la MISSION 1 et choix du prochain bloc (HUD carte des touches, props/collisions pour l'acte 0…).
+
+**Règle du projet** : une session = une victoire.

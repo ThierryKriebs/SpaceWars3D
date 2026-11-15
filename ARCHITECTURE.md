@@ -194,7 +194,7 @@ src/
 │   │   ├── keyboard.ts           # ex. : le clavier (touches → intentions)
 │   │   └── mouse.ts              # ex. : la souris (visée, clic maintenu → intentions)
 │   ├── physics/
-│   │   ├── newton.ts             # L'INTÉGRATEUR : poussée, inertie, plafond, frein, boost, rotation inertielle amortie — LUI SEUL écrit position (mission 1 !)
+│   │   ├── newton.ts             # L'INTÉGRATEUR : poussée, inertie, plafond, frein, boost, rotation inertielle PURE (pas d'amortissement auto) — LUI SEUL écrit position (mission 1 !)
 │   │   ├── collisions.ts         # L'ARBITRE multi-espèces : grossier d'abord, dégâts + carrefour ensuite — jamais la mort
 │   │   └── gravity.ts            # puits gravitationnels (plus tard) — FAIT SUBIR : courbe la vitesse, ne déplace jamais
 │   ├── weapons/                  # COMPORTEMENTS d'armes : droite, guidé, verrouillé… (code) — PAS des
@@ -576,15 +576,7 @@ L'ordre entre acteurs et gravity importe peu (additionner 2 + 3 ou 3 + 2, même 
 - **Les 6 degrés de liberté** : 3 axes de translation (poussée avant/arrière, dérive, montée) — le même plié répété trois fois ; 3 axes de rotation (tangage, lacet, roulis). Les intentions deviennent vitesse, la vitesse devient position.
 - **Le frein** : dans l'espace, freiner n'est pas lever le pied (pas de sol pour te freiner) — c'est une rétrofusée : `input.brake` décroît la vitesse axe par axe.
 - **Le boost** : PAS une nouvelle physique — les mêmes lignes avec d'autres réglages (`thrustPower × boostFactor`, plafond relevé). Les facteurs vivent dans le JSON : un vaisseau de course au boost monstrueux, un bombardier au boost ridicule — mêmes comportements, réglages différents. (Une jauge de boost avec carburant ? Discussion pour plus tard — si oui, un champ de plus dans la photo que newton décrémente.)
-- **La rotation est inertielle AUSSI, puis amortie** (décision du 9 nov.) : la photo porte une vitesse angulaire, la commande de tangage/lacet/roulis est un COUPLE qui l'augmente ; et des stabilisateurs freinent la rotation en continu (`angularVelocity *= angularDamping`). Un seul facteur règle tout le ressenti :
-
-| `angularDamping` | Comportement |
-|---|---|
-| `1.0` | jamais freiné — pirouettes infinies (simulateur pur, difficile) |
-| `~0.90` | je relâche, le vaisseau s'arrête de tourner en ~1 s — le ressenti classique des jeux spatiaux |
-| `0.5` | quasi instantané — arcade total |
-
-  Le degré d'amortissement est un curseur PAR VAISSEAU dans le JSON : un chasseur vif amortit vite, un vaisseau capital tourne lourd et glisse longtemps sur sa rotation.
+- **La rotation est inertielle, point final** (décision du 15 nov. 2026, Thierry) : la photo porte une vitesse angulaire, la commande de tangage/lacet/roulis est un COUPLE qui l'augmente ; relâchée, la rotation **dérive indéfiniment** — aucun amortissement automatique, aucun stabilisateur, aucun curseur `angularDamping`. Seul un frein explicite l'arrête : l'intention `stopAllRotation` (touche Maj), qui décélère `angularVelocity` vers 0 sur les 3 axes.
 
 **Pourquoi `newton.ts` n'utilise pas three.js** (décision du 14 nov.) : le serment de `game/` — newton ne connaît que des nombres (`x, y, z, vx…`), jamais un objet 3D. Trois pièges évités :
 
@@ -601,8 +593,7 @@ for (const ship of state.ships) {
   if (input.thrust) ship.velocity.z += power * dt;                // poussée (intention 0-1)
   if (input.brake)  ship.velocity.z -= ship.brakePower * dt;      // rétrofusée
   ship.angularVelocity.y += input.yaw * ship.rotationPower * dt;  // la commande = un couple
-  ship.angularVelocity *= ship.angularDamping;                    // les stabilisateurs
-  ship.rotation.y += ship.angularVelocity.y * dt;                 // rotation inertielle
+  ship.rotation.y += ship.angularVelocity.y * dt;                 // rotation inertielle pure (dérive tant que stopAllRotation n'est pas actif)
   ship.position += ship.velocity * dt;                            // LE déplacement — le seul du monde
 }
 ```
@@ -1118,7 +1109,7 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 - **Changement de vaisseau du joueur** : `PlayerShip` garde son rôle de pilotage, échange sa référence de modèle. Rien d'autre ne bouge.
 - **Modèle partagé joueur/ennemis/alliés** : normal et voulu — `models/ships/` ne connaît pas les factions.
 - **Arsenal de missiles** : 4-5 comportements dans `weapons/`, chaque missile réel = une ligne de réglages dans les données.
-- **Rotation des vaisseaux** : inertielle comme la translation (vitesse angulaire dans la photo, la commande est un couple) mais amortie par des stabilisateurs — `angularDamping`, curseur PAR VAISSEAU dans le JSON (chasseur vif ↔ capital lourd). Tranché le 9 nov. : ni pirouettes infinies, ni rotation sur rails.
+- **Rotation des vaisseaux** : purement inertielle comme la translation (vitesse angulaire dans la photo, la commande est un couple) — **jamais amortie automatiquement** : la rotation dérive tant qu'aucun frein explicite (`stopAllRotation`, touche Maj) n'est actionné. Tranché le 15 nov. 2026 (Thierry), en remplacement de la décision du 9 nov. : pas de stabilisateurs, pas de curseur `angularDamping` — arrêt manuel uniquement.
 - **Armes vs entités** : une arme n'est PAS une entité. Le test d'entrée d'`entities/` est la fiche dans la photo (*"naît, vit, peut mourir ?"*), JAMAIS le modèle 3D — un décor a un modèle sans être une entité, un projectile est une entité avec modèle, une arme n'a ni fiche ni modèle à elle. Le canon monté est un comportement référencé par la fiche ; ses canons dessinés vivent dans la maquette du vaisseau ; le projectile qu'il crée est une entité à part entière. Et le jour où un canon devient vivant (tourelle avec hp), il devient une entité qui référence une arme. Tranché le 9 nov.
 - **Rôles nommés vs capacités** (ex-*Cerveaux nommés vs capacités d'IA*) : `levels/roles/` (ex-`brains/`) porte des RÔLES (*où aller*), `game/capabilities/` (ex-`ai/`) porte des SAVOIR-FAIRE (*comment voir, esquiver, se battre*) — un rôle ASSEMBLE des capacités. Test : **référencé par un JSON de niveau → `levels/roles/` ; importé par du code → `game/capabilities/`.** L'IA ne triche jamais : ses esquives sont des intentions que newton exécute (équité jusqu'aux cerveaux) ; les ennemis lointains dorment (tick radius ~60 unités, grossier d'abord). Et Mistral, coéquipière du joueur, pilotera avec les mêmes organes que les ennemis. Tranché le 9 nov.
 - **Zod et la validation runtime** : TypeScript vérifie à la compilation ; le JSON des niveaux, lui, entre au runtime. Verdict : PAS de Zod en v1 (JSON internes, relus par l'auteur) ; il devient quasi obligatoire le jour de l'éditeur (imports externes). Le jour venu : les schémas vivent dans `types/` (le schéma EST le contrat, le type s'en déduit par `z.infer`) et la validation vit DANS le chargeur — les données n'entrent pas dans la photo sans passe. Tranché le 9 nov.
