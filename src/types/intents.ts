@@ -11,4 +11,8 @@ export interface InputIntent {
   rollLeft: number; // 0-1: roll left around Z (roulis)
   rollRight: number; // 0-1: roll right around Z (roulis)
   stopAllRotation: number; // 1 while Shift is held: brake ALL rotation to a full stop
+  strafeLeft: number; // 0-1: lateral thrust left (local -X)
+  strafeRight: number; // 0-1: lateral thrust right (local +X)
+  liftUp: number; // 0-1: vertical thrust up (local +Y)
+  liftDown: number; // 0-1: vertical thrust down (local -Y)
 }

@@ -349,3 +349,51 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : commit + push par Thierry (tout le chantier session 14). Ensuite au choix : `stopPower` dédié pour le frein auto (Espace), ou clôture de la MISSION 1 et choix du prochain bloc (HUD carte des touches, props/collisions pour l'acte 0…).
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-15 — Session 14 (suite 8) : les 2 translations manquantes ajoutées — 6DOF complet (3 translations + 3 rotations)
+
+**Fait** : strafe (local X) et lift (local Y) branchés de bout en bout (5 fichiers, ~45 lignes) : 4 nouvelles intentions `strafeLeft/strafeRight/liftUp/liftDown` (0-1), touches `Comma`/`Period` (AZERTY « ; »/« : ») et `PageUp`/`PageDown`, recopies dans `updatePlayer()`, et dans `newton.ts` les axes locaux `right`/`up` calculés depuis la rotation complète (roulis inclus — `forward` n'en a pas besoin, `right`/`up` si), poussée au même `thrustPower`. Formules des axes vérifiées par script contre la matrice de rotation de référence Rx·Ry·Rz (Euler XYZ de three.js) : 7 cas testés, écart < 1e-9, normes = 1. `stopAllTranslation` (Espace) et le plafond `maxSpeed` couvraient déjà le vecteur 3D entier — inchangés. Signes des nouveaux axes à confirmer en jouant. Vérifié : `tsc --noEmit` sans erreur hors démo ; `GET /play` → 200 ; chunk servi contient `strafeRight`/`liftUp` ×7, `Comma:`/`PageUp:`, les axes `rightX`… Non commité : Thierry committera.
+
+**Appris / incidents** : rien de cassé. Un commentaire de Thierry a dérivé sur la mauvaise ligne lors de l'insertion (corrigé). Leçon : `forward` ignore le roulis parce que Rz laisse -Z invariant ; `right`/`up` l'incluent — d'où des formules plus longues mais vérifiées numériquement.
+
+**Prochaine étape** : test visuel sur `localhost:3000/play` — strafe et lift répondent dans le bon sens (à valider en jeu, roulis inclus), Espace arrête bien les 3 translations. Puis commit + push par Thierry. MISSION 1 = 6DOF complet. Ensuite : `stopPower` dédié pour Espace, ou prochain bloc (HUD, props…).
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-15 — Session 14 (suite 9) : newton.ts — bloc cosinus rendu lisible (même calcul, mieux écrit)
+
+**Fait** : à la demande de Thierry (« les calculs sont terribles »), le bloc axes+poussée de `newton.ts` est réécrit plus lisiblement, SANS changer le calcul ni créer de helper (décision actée session 13 : pas de fichier helper) : cos/sin nommés court (`cX/sX/cY/sY/cZ/sZ`) lus une fois ; poussée sommée d'abord dans le repère LOCAL du vaisseau (`localX/localY/localZ`, 3 lignes), puis passée en monde par UNE multiplication matrice-vecteur (`velocity += R · localThrust × dt`, 3 lignes) au lieu de 12 lignes répétées. Équivalence prouvée par script : 100 cas aléatoires (rotations + intentions), écart max old vs new = 6,9e-17 (bruit flottant) → identique. Vérifié : `tsc --noEmit` sans erreur hors démo ; `GET /play` → 200 ; chunk servi contient `localX`. Le bloc rotation est inchangé. Non commité : Thierry committera.
+
+**Appris / incidents** : rien de cassé. Leçon : « illisible » ≠ « faux » — on peut réorganiser sans changer le résultat, à condition de le prouver numériquement avant/après.
+
+**Prochaine étape** : test visuel sur `localhost:3000/play` (rien ne doit avoir changé en jeu — mêmes trajectoires), puis commit + push par Thierry. Ensuite : `stopPower` dédié pour Espace, ou prochain bloc (HUD, props…).
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-15 — Session 14 (suite 10) : localX/Y/Z renommé en shipThrust (Vec3)
+
+**Fait** : à la demande de Thierry, `localX/localY/localZ` devient `const shipThrust: Vec3 = { x, y, z }` dans `newton.ts` (import type `Vec3` depuis `@/types`), avec commentaire par axe (ailes/toit/nez) ; les 3 lignes velocity utilisent `shipThrust.x/y/z`. Renommage pur, calcul identique. Vérifié : `tsc --noEmit` sans erreur hors démo ; `GET /play` → 200. Non commité : Thierry committera.
+
+**Appris / incidents** : rien de cassé. « local » = repère propre du vaisseau (axes attachés à la coque), par opposition au repère monde — expliqué à Thierry, nom `shipThrust` retenu.
+
+**Prochaine étape** : commit + push par Thierry (chantier session 14 complet), puis test visuel, puis au choix : `stopPower` dédié pour Espace ou prochain bloc (HUD, props…).
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-15 — Session 14 (suite 11) : retour en arrière sur Vec3 — shipThrustX/Y/Z scalaires
+
+**Fait** : Thierry n'avait pas demandé le passage en objet `Vec3` — revert : `shipThrust: Vec3` redevient trois scalaires `shipThrustX` / `shipThrustY` / `shipThrustZ` dans `newton.ts`, et l'import `Vec3` est retiré. Le nom `shipThrust` (choisi par Thierry) est conservé. Calcul identique. Vérifié : plus aucune occurrence de `Vec3` dans newton.ts ; `tsc --noEmit` sans erreur hors démo ; `GET /play` → 200. Non commité : Thierry committera.
+
+**Appris / incidents** : rien de cassé. Leçon de collaboration : ne pas introduire un type/structure (objet Vec3) au-delà de ce qui a été demandé — un nommage clair suffit (shipThrustX se lit très bien).
+
+**Prochaine étape** : commit + push par Thierry, test visuel, puis au choix : `stopPower` dédié pour Espace ou prochain bloc (HUD, props…).
+
+**Règle du projet** : une session = une victoire.

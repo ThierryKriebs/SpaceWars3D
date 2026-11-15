@@ -22,6 +22,10 @@ const KEYMAP: Record<string, keyof InputIntent> = {
   KeyD: "rollRight",                  // (AZERTY: D)              roll => (Lacet) turn Right around Z
   ShiftLeft: "stopAllRotation",       // (AZERTY: Maj gauche)     shift => Auto-brake, stop only all Rotation
   ShiftRight: "stopAllRotation",      // (AZERTY: Maj droite)     shift => Auto-brake, stop only all Rotation
+  Comma: "strafeLeft",                // (AZERTY: ;)              Translation to Axis -X
+  Period: "strafeRight",              // (AZERTY: :)              Translation to Axis +X
+  PageUp: "liftUp",                   // (AZERTY: PageUp)         Translation to Axis +Y
+  PageDown: "liftDown",               // (AZERTY: PageDown)       Translation to Axis -Y
 };
 
 function applyKey(e: KeyboardEvent, value: number): void {

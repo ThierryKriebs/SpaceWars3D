@@ -4,24 +4,57 @@ import { state } from "../core/state";
 // It is the ONLY module in the whole game allowed to write `position`.
 export function updateShips(dt: number): void {
   for (const ship of state.ships) {
-    // The ship's own forward axis (nose = local -Z) after the ship's rotation —
-    // same composition as three.js Euler XYZ (roll rz needs no term here:
-    // rotating around Z leaves the nose vector -Z unchanged):
-    // forward = (-sin ry, sin rx·cos ry, -cos rx·cos ry).
+    // The ship's local axes in world frame = the columns of its rotation matrix
+    // (same Euler XYZ composition as three.js; verified against the reference
+    // matrix — identical results, shorter names). The nose (local -Z) is
+    // unchanged by roll, but the wing (local +X) and roof (local +Y) are tilted
+    // by it, so right/up include rz.
     const rx = ship.rotation.x;
     const ry = ship.rotation.y;
-    const forwardX = -Math.sin(ry);
-    const forwardY = Math.sin(rx) * Math.cos(ry);
-    const forwardZ = -Math.cos(rx) * Math.cos(ry);
+    const rz = ship.rotation.z;
+    
+    //cX => cosinus(X), sX => sinus(X), etc. for the three rotation axes.
+    const cX = Math.cos(rx); 
+    const sX = Math.sin(rx);
+    const cY = Math.cos(ry);
+    const sY = Math.sin(ry);
+    const cZ = Math.cos(rz); //cZ  =  cos(roulis)  =  la part que le roulis laisse sur l'axe de départ
+    const sZ = Math.sin(rz);
 
-    // Each ship reads ITS OWN intent from its sheet.
-    // Both are 0-1 intentions — no if needed, multiplying by 0 does nothing.
-    ship.velocity.x += forwardX * ship.intent.thrust * ship.thrustPower * dt;
-    ship.velocity.y += forwardY * ship.intent.thrust * ship.thrustPower * dt;
-    ship.velocity.z += forwardZ * ship.intent.thrust * ship.thrustPower * dt;
-    ship.velocity.x -= forwardX * ship.intent.brake * ship.brakePower * dt;
-    ship.velocity.y -= forwardY * ship.intent.brake * ship.brakePower * dt;
-    ship.velocity.z -= forwardZ * ship.intent.brake * ship.brakePower * dt;
+    //The ship pushes in three directions (nose, right wing, roof)
+
+    // ‘forward’ is a single vector (the direction of the nose), which can be decomposed along the three axes of the global reference system:
+    // forward = (0, 0, −1) => The entire nose is on the world Z-component
+    const forwardX = -sY;       // proportion of the movement along the x-axis
+    const forwardY = sX * cY;   // proportion of the movement along the y-axis
+    const forwardZ = -cY * cX;  // proportion of the movement along the z-axis
+
+    // 'right' is a single vector (the direction of the wing axis, +X => right side), which can be decomposed along the three axes of the global reference system:
+    // right = (1, 0, 0) => The entire right wing is on the world X-component
+    // 1 roll (roulis Z), then 2 yaws (lacet Y), then 3 pitches (tangage X) => always in that order
+    const rightX   = cZ * cY * 1;                   // cZ * cY * 1 proportion of the wing's direction along the x-axis of the world (the monitor reference), after all rotations
+                                                    //`cZ * cY * 1;`  (roulis * lacet * tangage)
+    const rightY   = sZ * 1 * cX + cZ * sY * sX;    // proportion of the wing's direction along the y-axis of the world, after all rotations
+                                                    // sZ * 1 * cX  +  cZ * sY * sX;  
+    const rightZ   = sZ * 1 * sX - cZ * sY * cX;    // proportion of the wing's direction along the z-axis of the world, after all rotations
+                                                    // sZ * 1 * sX - cZ * sY * cX    
+
+    // 'up' is a single vector (the direction of the roof axis, +Y => top side / canopy), which can be decomposed along the three axes of the global reference system:
+    // up = (0, 1, 0) => The entire roof is on the world Y-component
+    const upX      = -cY * sZ;
+    const upY      = cX * cZ - sX * sY * sZ;
+    const upZ      = sX * cZ + cX * sY * sZ;
+
+    // Each ship reads ITS OWN intent from its sheet. All are 0-1 intentions.
+    // Commanded thrust in the ship's OWN frame (units/s²), then rotated to world
+    // with ONE matrix-vector product: velocity += R · shipThrust × dt.
+    const shipThrustX = (ship.intent.strafeRight - ship.intent.strafeLeft) * ship.thrustPower;       // along the wings
+    const shipThrustY = (ship.intent.liftUp - ship.intent.liftDown) * ship.thrustPower;              // along the roof
+    const shipThrustZ = ship.intent.thrust * ship.thrustPower - ship.intent.brake * ship.brakePower; // along the nose
+    
+    ship.velocity.x += (rightX * shipThrustX + upX * shipThrustY + forwardX * shipThrustZ) * dt;
+    ship.velocity.y += (rightY * shipThrustX + upY * shipThrustY + forwardY * shipThrustZ) * dt;
+    ship.velocity.z += (rightZ * shipThrustX + upZ * shipThrustY + forwardZ * shipThrustZ) * dt;
 
     // Auto-brake (Space): decelerate the WHOLE velocity toward 0, stop there —
     // never reverses, whatever the direction of travel.
@@ -70,6 +103,7 @@ export function updateShips(dt: number): void {
     ship.angularVelocity.z += (ship.intent.rollLeft - ship.intent.rollRight) * ship.turnPower * dt;
     if (ship.angularVelocity.z > ship.maxTurnRate) ship.angularVelocity.z = ship.maxTurnRate;
     if (ship.angularVelocity.z < -ship.maxTurnRate) ship.angularVelocity.z = -ship.maxTurnRate;
+   
     // Spin brake (Shift): decelerate the WHOLE angular velocity toward 0 —
     // same pattern as the Space stop, on the rotation axes.
     if (ship.intent.stopAllRotation > 0) {

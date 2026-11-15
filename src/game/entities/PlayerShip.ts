@@ -9,7 +9,7 @@ export function spawnPlayer(): void {
     velocity: { x: 0, y: 0, z: 0 }, // starts at rest — press W to accelerate
     rotation: { x: 0, y: 0, z: 0 },
     angularVelocity: { x: 0, y: 0, z: 0 }, // starts without spin
-    intent: { thrust: 0, brake: 0, stopAllTranslation: 0, yawLeft: 0, yawRight: 0, pitchUp: 0, pitchDown: 0, rollLeft: 0, rollRight: 0, stopAllRotation: 0 },
+    intent: { thrust: 0, brake: 0, stopAllTranslation: 0, yawLeft: 0, yawRight: 0, pitchUp: 0, pitchDown: 0, rollLeft: 0, rollRight: 0, stopAllRotation: 0, strafeLeft: 0, strafeRight: 0, liftUp: 0, liftDown: 0 },
     thrustPower: 20,
     brakePower: 20,
     turnPower: 3, // rad/s² acceleration for each axis of angular velocity (roll, pitch, yaw)
@@ -36,4 +36,8 @@ export function updatePlayer(): void {
   player.intent.rollLeft = state.input.rollLeft;
   player.intent.rollRight = state.input.rollRight;
   player.intent.stopAllRotation = state.input.stopAllRotation;
+  player.intent.strafeLeft = state.input.strafeLeft;
+  player.intent.strafeRight = state.input.strafeRight;
+  player.intent.liftUp = state.input.liftUp;
+  player.intent.liftDown = state.input.liftDown;
 }
