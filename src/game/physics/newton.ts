@@ -25,7 +25,7 @@ export function updateShips(dt: number): void {
 
     // Auto-brake (Space): decelerate the WHOLE velocity toward 0, stop there —
     // never reverses, whatever the direction of travel.
-    if (ship.intent.stop > 0) {
+    if (ship.intent.stopAllTranslation > 0) {
       const decel = ship.brakePower * dt;
       const v = Math.hypot(ship.velocity.x, ship.velocity.y, ship.velocity.z);
       if (v <= decel) {
@@ -70,6 +70,22 @@ export function updateShips(dt: number): void {
     ship.angularVelocity.z += (ship.intent.rollLeft - ship.intent.rollRight) * ship.turnPower * dt;
     if (ship.angularVelocity.z > ship.maxTurnRate) ship.angularVelocity.z = ship.maxTurnRate;
     if (ship.angularVelocity.z < -ship.maxTurnRate) ship.angularVelocity.z = -ship.maxTurnRate;
+    // Spin brake (Shift): decelerate the WHOLE angular velocity toward 0 —
+    // same pattern as the Space stop, on the rotation axes.
+    if (ship.intent.stopAllRotation > 0) {
+      const decel = ship.spinBrakePower * dt;
+      const w = Math.hypot(ship.angularVelocity.x, ship.angularVelocity.y, ship.angularVelocity.z);
+      if (w <= decel) {
+        ship.angularVelocity.x = 0;
+        ship.angularVelocity.y = 0;
+        ship.angularVelocity.z = 0;
+      } else {
+        const k = (w - decel) / w;
+        ship.angularVelocity.x *= k;
+        ship.angularVelocity.y *= k;
+        ship.angularVelocity.z *= k;
+      }
+    }
     ship.rotation.x += ship.angularVelocity.x * dt;
     ship.rotation.y += ship.angularVelocity.y * dt;
     ship.rotation.z += ship.angularVelocity.z * dt;

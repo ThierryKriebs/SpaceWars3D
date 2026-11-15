@@ -507,7 +507,7 @@ import type { InputIntent } from "@/types";
 const KEYMAP: Record<string, keyof InputIntent> = {
   ArrowUp: "thrust",
   KeyW: "thrust", // AZERTY: Z
-  Space: "stop",
+  Space: "stopAllTranslation",
   ArrowLeft: "yawLeft",
   // ...
 };
@@ -528,7 +528,7 @@ Et la contrepartie dans la photo :
 
 ```ts
 // state.ts — le champ input : des ACTIONS (valeurs 0-1), pas des boutons.
-input: { thrust: 0, stop: 0, yawLeft: 0, ... } as InputIntent
+input: { thrust: 0, stopAllTranslation: 0, yawLeft: 0, ... } as InputIntent
 ```
 
 **Trois règles des entrées :**

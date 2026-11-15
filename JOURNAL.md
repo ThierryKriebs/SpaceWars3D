@@ -313,3 +313,27 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : test visuel sur `localhost:3000/play`, puis commit + push par Thierry (roulis + KEYMAP + docs + journal). Ensuite au choix : `stopPower` dédié pour le frein auto, ou autre.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-15 — Session 14 (suite 5) : frein de rotation sur touche dédiée (Maj) — stopSpin
+
+**Fait** : décision Thierry après discussion (Space = translation seule ; `angularDamping` acté mais pas encore implémenté ; touche dédiée choisie) — frein de rotation branché de bout en bout (6 fichiers, ~20 lignes) : `InputIntent.stopSpin`, `ShipSheet.spinBrakePower` (3 rad/s², dédié à la fiche — ne emprunte pas brakePower), `state.input`, KEYMAP `ShiftLeft`/`ShiftRight` → `stopSpin` (les deux Maj physiques ; Verr. Maj/CapsLock volontairement non bindé), recopie dans `updatePlayer()`, et bloc stopSpin dans `newton.ts` (même pattern que le stop Espace, sur `angularVelocity` x/y/z : hypot 3D, snap à 0 sous le seuil). Une édition a échoué (fichier re-commenté entre-temps par Thierry) → relecture fraîche avant réapplication, per the book. Vérifié : `tsc --noEmit` sans erreur hors démo ; `GET /play` → 200 ; chunk servi contient `ShiftLeft/ShiftRight: "stopSpin"`, `stopSpin` ×3 (state, fiche, recopie) et le bloc `spinBrakePower * dt`. Non commité : Thierry committera.
+
+**Appris / incidents** : rien de cassé. Rappel : deux touches Maj physiques = deux codes (`ShiftLeft`/`ShiftRight`), idem Ctrl/Alt. Comportement : Maj maintenue = la rotation décélère vers 0 sur les 3 axes (~0,5 s à spin max) ; relâchée = la dérive rotationnelle repart (inertie conservée).
+
+**Prochaine étape** : test visuel sur `localhost:3000/play` (lancer une rotation avec ←/Q/A, maintenir Maj → arrêt du spin ; Space n'arrête toujours que la translation), puis commit + push par Thierry. Ensuite au choix : `stopPower` dédié pour le frein auto (Espace), `angularDamping` (stabilisateurs, acté 9 nov.), ou autre.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-15 — Session 14 (suite 6) : renommage stop → stopAllTranslation, stopSpin → stopAllRotation (demande explicite de Thierry)
+
+**Fait** : renommage propagé dans les 8 fichiers concernés (pur renommage d'identifiants, zéro changement de comportement) : `src/types/intents.ts`, `src/game/core/state.ts`, `src/game/controls/keyboard.ts` (Space → `"stopAllTranslation"`, ShiftLeft/Right → `"stopAllRotation"`), `src/game/entities/PlayerShip.ts` (intent + 2 recopies), `src/game/physics/newton.ts` (les 2 conditions), `src/types/sheets.ts` (commentaire de `spinBrakePower` — le champ lui-même inchangé), `ARCHITECTURE.md` (exemples section 10). Motif : `stop` était ambigu (confondu avec Z-only) — les nouveaux noms disent explicitement quelle partie du 6DOF est freinée. Vérifié : plus aucun `stopSpin` ni `stop` comme identifiant dans `src/` (12 occurrences des nouveaux noms) ; `tsc --noEmit` sans erreur hors démo ; `GET /play` → 200 ; chunk servi contient les nouveaux noms et plus `stopSpin`. Non commité : Thierry committera.
+
+**Appris / incidents** : rien de cassé. Leçon : un renommage demandé explicitement se propage partout où le contrat est référencé (types → state → controls → entité → physique → doc) — d'où l'intérêt du typage strict qui liste chaque occurrence à l'erreur de compilation.
+
+**Prochaine étape** : test visuel sur `localhost:3000/play`, puis commit + push par Thierry (tout le chantier de la session 14 : roulis, KEYMAP, stopSpin renommé, docs, journal). Ensuite au choix : `stopPower` dédié pour le frein auto (Espace), `angularDamping`, ou autre.
+
+**Règle du projet** : une session = une victoire.

@@ -19,5 +19,6 @@ export interface ShipSheet {
   brakePower: number; // retro-thrust power (backward)
   turnPower: number; // angular acceleration per rotation axis (rad/s²)
   maxTurnRate: number; // cap on angular velocity per axis (rad/s)
+  spinBrakePower: number; // spin-brake deceleration (rad/s²) while stopAllRotation is held
   maxSpeed: number;
 }

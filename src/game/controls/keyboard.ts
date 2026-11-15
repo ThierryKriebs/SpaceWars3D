@@ -10,16 +10,18 @@ import type { InputIntent } from "@/types";
 // (each keydown carries both e.code and e.key), not from these comments.
 const KEYMAP: Record<string, keyof InputIntent> = {
   ArrowUp: "thrust",
-  KeyW: "thrust", // AZERTY: Z
-  ArrowDown: "brake",
-  KeyS: "brake", // AZERTY: S
-  Space: "stop",
-  ArrowLeft: "yawLeft",
-  ArrowRight: "yawRight",
-  KeyQ: "pitchUp", // AZERTY: A
-  KeyE: "pitchDown", // AZERTY: E
-  KeyA: "rollLeft", // AZERTY: Q
-  KeyD: "rollRight", // AZERTY: D
+  KeyW: "thrust",                     // (AZERTY: Z)              Translation to Axis -Z 
+  ArrowDown: "brake",                 // (AZERTY: ArrowDown or S) Translation to Axis +Z 
+  KeyS: "brake",                      // (AZERTY: ArrowDown or S) Translation to Axis +Z 
+  Space: "stopAllTranslation",        // (AZERTY: space)          Auto-brake, stop only all Translation, 
+  ArrowLeft: "yawLeft",               // (AZERTY: ArrowLeft)      yaw => (Lacet) turn Left around Y 
+  ArrowRight: "yawRight",             // (AZERTY: ArrowRight)     yaw => (Lacet) turn Right around Y
+  KeyQ: "pitchUp",                    // (AZERTY: A)              pitch => (Tangage) turn Up around X
+  KeyE: "pitchDown",                  // (AZERTY: E)              pitch => (Tangage) turn Down around X
+  KeyA: "rollLeft",                   // (AZERTY: Q)              roll => (Lacet) turn Left around Z
+  KeyD: "rollRight",                  // (AZERTY: D)              roll => (Lacet) turn Right around Z
+  ShiftLeft: "stopAllRotation",       // (AZERTY: Maj gauche)     shift => Auto-brake, stop only all Rotation
+  ShiftRight: "stopAllRotation",      // (AZERTY: Maj droite)     shift => Auto-brake, stop only all Rotation
 };
 
 function applyKey(e: KeyboardEvent, value: number): void {
