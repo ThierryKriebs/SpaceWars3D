@@ -19,7 +19,7 @@ La carte du chantier : qui va où, et pourquoi. Les dossiers naissent quand leur
 8. [`state.ts`](#sec-08) — où vivent les propriétés des objets, et comment le 3D les relit.
 9. [`events.ts`](#sec-09) — le carrefour des événements (publier / s'abonner).
 10. [`controls/`](#sec-10) — les entrées : capter, traduire, écrire.
-11. [`game/physics/`](#sec-11) — les lois du monde : newton exécute, gravity fait subir, collisions arbitrent.
+11. [`game/physics/`](#sec-11) — les lois du monde : newton exécute (et traduit sa boussole `forward`), gravity fait subir, collisions arbitrent.
 12. [`game/weapons/`](#sec-12) — les comportements d'armes : la coque porte, le comportement sert — le projectile, lui, est une entité.
 13. [`game/capabilities/`](#sec-13) — les capacités (ex-ai/) : voir (cônes, raycast), esquiver, se battre — les rôles nommés assemblent.
 14. [`levels/`](#sec-14) — le plateau : `data/` (les niveaux JSON), `roles/` (ex-brains/ : les rôles nommés), `index.ts` (le régisseur) — un niveau se décrit, il ne se code plus.
@@ -594,6 +594,166 @@ for (const ship of state.ships) {
 }
 ```
 
+### La boussole `forward` — la trigonométrie du nez *(décision du 14 nov. 2026)*
+
+Les trois lignes de `newton.ts` qui transforment les rotations en direction de déplacement sont le passage le plus dense du moteur. Cette section les explique dans l'ordre où on les comprend : d'abord **ce qu'est** un `forward`, puis le vocabulaire (sinus/cosinus), puis ce que chaque rotation déplace, puis les cas extrêmes pour se projeter — et seulement ensuite les formules, qui deviennent lisibles. *(Cette compréhension a demandé une vraie ascension, achevée le 14 nov. 2026 — le simulateur interactif « Vue 3D du vaisseau » permet de manipuler rx/ry et de voir la boîte du forward.)*
+
+#### 1. D'abord : ce qu'est un `forward` (avant toute formule)
+
+Un `forward`, ce sont **trois nombres** : de combien je me déplace sur x, sur y et sur z si j'avance d'exactement 1 dans la direction de mon nez.
+
+- Ce ne sont **pas des rotations**. C'est un **déplacement** : la direction dans laquelle le vaisseau avance, décomposée sur les trois axes.
+- Les rotations (l'attitude) sont simplement **l'ingrédient** qui fabrique ce déplacement.
+- La distinction à toujours garder en tête : `rotation` dit *comment le vaisseau est tourné* ; `forward` dit *vers où il se déplace*. Newton fait le pont à chaque battement : `vitesse += forward × poussée` — **la direction vient de la boussole, l'amplitude vient de la poussée** (`thrust × thrustPower × dt`).
+
+**Le contrat, à lire avant tout le reste** :
+
+```ts
+forwardX² + forwardY² + forwardZ² = 1   // toujours
+```
+
+La flèche du nez ne change **jamais de longueur** — elle ne fait que tourner. Les trois nombres ne sont pas trois mouvements indépendants : ils se **partagent le même déplacement de longueur 1**, comme des pourcentages d'un seul et même mouvement. Tourner le vaisseau redistribue les parts ; il ne change pas le total.
+
+#### 2. Le vocabulaire : sinus et cosinus (avant les formules)
+
+Pour un angle θ, deux quantités — et toujours les deux mêmes questions :
+
+- **sin(θ) = la quantité de mouvement qui PART** de l'axe de départ vers l'axe neuf ;
+- **cos(θ) = la quantité de mouvement qui RESTE** sur l'axe de départ.
+
+Exemple : cos(40°) = 0,766 → 76,6 % du mouvement reste sur l'axe de départ, et sin(40°) = 0,643 → 64,3 % part sur l'axe neuf. Ce sont des **pourcentages de mouvement**.
+
+Fondement (pourquoi c'est vrai et pas une astuce) : sin et cos sont les **coordonnées d'un point sur le cercle de rayon 1** — cos = abscisse (lue sur l'axe de départ), sin = ordonnée (sur l'axe neuf). Et comme le point reste sur le cercle : `cos² + sin² = 1` — un partage à somme constante, exactement le contrat du §1.
+
+#### 3. Ce que chaque rotation déplace (les rotations d'abord)
+
+Les formules partent des rotations : c'est donc elles qu'on examine d'abord. Le nez du vaisseau pointe au repos vers **−z** — c'est la **position de départ**, celle dont chaque rotation prélève sa part.
+
+Avant le tableau, trois schémas pour **voir** chaque rotation sur un moniteur. Convention identique sur les trois : le **cadre bleu** = le moniteur, les **axes noirs** = les axes du monde visibles à l'écran, le **vaisseau en vert**, et la **flèche courbe rouge** = la rotation.
+
+**Schéma 0a — le lacet** : le pivot **y** pointe vers votre œil (vous regardez le vaisseau **de dessus**). Le nez part de −z et glisse **vers x** :
+
+![Lacet — vue de dessus](docs/schemas/lacet.png)
+
+**Schéma 0b — le tangage** : le pivot **x** pointe vers votre œil (vous regardez le vaisseau **de profil**). Le nez part de −z et grimpe **vers y** :
+
+![Tangage — vue de profil](docs/schemas/tangage.png)
+
+**Schéma 0c — le roulis** : le pivot **z** pointe vers votre œil (vous êtes **derrière** le vaisseau, le nez vous regarde). Le nez ne quitte PAS le centre de l'écran — c'est le corps entier qui pivote sur lui-même :
+
+![Roulis — vue de derrière](docs/schemas/roulis.png)
+
+Lecture des trois schémas : **lacet** = le nez glisse de z vers x, **tangage** = le nez glisse de z vers y, **roulis** = le nez ne glisse nulle part — seul le corps pivote sur lui-même. Ce que montre chaque flèche rouge, c'est exactement les axes touchés par chaque rotation :
+
+
+| Rotation | Autour de l'axe… | …elle déplace le nez sur | Pourquoi |
+|---|---|---|---|
+| lacet (`ry`) | **y** | **x et z** | un pivot ne déplace jamais rien sur son propre axe ; le nez part de −z, donc il glisse **entre −z et x** |
+| tangage (`rx`) | **x** | **y et z** | même règle en miroir : le nez glisse **entre −z et y** |
+| roulis (`rz`) | **z** | **RIEN** | le pivot z EST l'axe du nez : pivoter sur soi-même ne déplace pas le nez |
+
+Deux conséquences directes, qui expliquent TOUTE l'allure des formules :
+
+1. **Une rotation ne déplace jamais rien sur son propre axe.** La poignée de porte tourne autour de son axe — elle ne descend pas le long de son axe. C'est pour ça que le roulis (pivot sur l'axe du nez) n'apparaît dans aucune ligne : il ne déplace pas le nez d'un millimètre.
+2. **L'axe z est la position de départ, donc il est prélevé DEUX FOIS.** Le lacet prend sa part sur ce qui est devant (−z), puis le tangage prend sa part **sur ce qui en reste**. C'est pour ça que le cosinus apparaît deux fois dans `forwardZ` : une fois par rotation qui est passée par là.
+
+**Pourquoi tantôt `rx`, tantôt `ry` ?** Chaque ligne calcule le déplacement sur UN axe — et ce déplacement ne peut venir que de la rotation qui touche cet axe (colonne 3 du tableau) :
+- le déplacement sur **x** ne peut venir que du **lacet** → l'angle de la ligne est `ry` ;
+- le déplacement sur **y** ne peut venir que du **tangage** → l'angle de la ligne est `rx` ;
+- le déplacement sur **z** reçoit les restes des deux → ses deux cosinus, `rx` et `ry`.
+
+**Schéma 1 — le lacet, vu de dessus** (le pivot **y** sort de la feuille ; le plan est x/z) :
+
+```
+            −z  (devant, la position de départ)
+            ↑
+            │
+            │  cos(ry) = la part qui RESTE sur −z
+            │
+            └────────●  ← le nez après rotation (flèche de longueur 1)
+                   ↗
+                 ↗
+               ↗   sin(ry) = la part qui PART sur l'axe neuf (−x)
+             ↗       (virage à gauche → x négatif → le signe − de forwardX)
+   −x ←──────────────────────→ +x
+```
+
+**Schéma 2 — le tangage, vu de profil** (le pivot **x** sort de la feuille ; le plan est y/z) :
+
+```
+   +y (le ciel)
+    ↑
+    │      sin(rx) = la part qui PART vers le haut
+    │    ↗
+    │  ↗
+    │●  ← le nez  (tangage positif = nez qui se lève → forwardY positif)
+    │
+    │  cos(rx) = la part qui RESTE devant (−z)
+    │
+    └──────────────────────→ −z
+```
+
+#### 4. Se projeter AVANT de lire les formules : les cas extrêmes
+
+Si les formules sont justes, elles doivent redonner ces évidences. À vérifier mentalement à chaque doute :
+
+- **lacet 0, tangage 0** → `forward = (0, 0, −1)` : tout le nez est devant, rien n'a bougé ;
+- **lacet 90°** → `forward = (−1, 0, 0)` : tout le nez est braqué à gauche, plus rien devant ;
+- **tangage 90°** (lacet 0) → `forward = (0, +1, 0)` : tout le nez est au ciel ;
+- **roulis 90°** → la boussole ne change **pas** : `(0, 0, −1)` — le nez pivote sur lui-même, il ne se déplace pas.
+
+#### 5. Les formules — dans l'ordre des calculs
+
+**L'ordre des trois lignes n'est pas décoratif : la deuxième dépend de la première.** On calcule le lacet d'abord, puis le tangage **sur ce que le lacet a laissé devant** — et cet ordre ne s'inverse pas (les rotations ne commutent pas : lacet-puis-tangage ≠ tangage-puis-lacet).
+
+```ts
+const rx = ship.rotation.x; // tangage : rotation AUTOUR de x (l'axe des ailes)
+const ry = ship.rotation.y; // lacet   : rotation AUTOUR de y (le mât vertical)
+
+const forwardX = -Math.sin(ry);                // 1er calcul : le lacet seul
+const forwardY =  Math.sin(rx) * Math.cos(ry); // 2e calcul : le tangage, sur le reste du lacet
+const forwardZ = -Math.cos(rx) * Math.cos(ry); // ce qui reste de la position de départ
+```
+
+**Ligne 1 — `forwardX = −sin(ry)` : le lacet, premier calcul.** Aucun déplacement n'a encore été fait : la flèche entière (longueur 1) est encore sur −z, et ce qui « reste » vaut donc **1** — c'est pour ça qu'on n'écrit que le sinus : multiplier par 1 ne se voit pas. Le lacet envoie vers x une quantité `sin(ry)` de cette flèche. Le signe − : un virage à gauche donne un x négatif.
+
+**Ligne 2 — `forwardY = sin(rx) × cos(ry)` : le tangage, deuxième calcul.** Le tangage n'agit pas sur la flèche entière — le lacet est déjà passé. Il agit sur **ce que le lacet a laissé devant** : `cos(ry)`. De cette quantité, il fait monter `sin(rx)`. D'où les **deux** facteurs : la part qui monte (sin du tangage), appliquée à ce qui restait (cos du lacet).
+
+**Ligne 3 — `forwardZ = −cos(rx) × cos(ry)` : ce qui reste de la position de départ.** Le nez valait tout entier 1 sur −z ; le lacet en a prélevé sa part, le tangage a prélevé sa part **du reste**. Cette ligne mesure ce qui reste après les deux prélèvements : `cos(ry)` (le reste après le lacet), puis `cos(rx)` de ce reste (après le tangage). Le signe − n'est pas un sens de virage : c'est la convention du monde, **devant = −z**.
+
+**Vérification sur les cas extrêmes du §4** : lacet 0 → sin(0) = 0, cos(0) = 1 → `(0, 0, −1)` ✓. Lacet 90° → sin(90°) = 1, cos(90°) = 0 → `(−1, 0, 0)` ✓. Tangage 90° → `(0, +1, 0)` ✓. Le roulis n'apparaît nulle part ✓.
+
+**Schéma 3 — la cascade : le tangage agit sur le RESTE du lacet** (`ry = 60°` puis `rx = 40°`) :
+
+```
+ flèche entière : 1,000 ── lacet ry=60° ──►  part vers −x : sin(60°) = 0,866
+                                               reste devant : cos(60°) = 0,500
+                                                        │
+                              tangage rx=40° sur CE reste │
+                                                        ▼
+                              part vers +y : sin(40°) × 0,5 = 0,321
+                              reste devant : cos(40°) × 0,5 = 0,383
+
+ forward = (−0,866 ; +0,321 ; −0,383)  ── Pythagore : 0,75 + 0,103 + 0,147 = 1,000 ✓
+```
+
+Exercice d'entretien (à refaire à la calculatrice) : `ry = 40°, rx = 25°` → ≈ **(−0,643, +0,342, −0,694)**.
+
+#### 6. L'ordre des calculs = l'ordre de three.js (décision d'architecture)
+
+Nos formules suivent l'ordre d'Euler **'XYZ' par défaut de three.js** : le lacet d'abord, puis le tangage autour de **l'axe X du monde**. C'est la cohérence qui prime : **ce que newton calcule est exactement ce qui s'affiche à l'écran**, puisque le modèle 3D est orienté par ce même ordre.
+
+- L'ordre inverse (« aviation » — pivots sur les axes du vaisseau, pas du monde) donnerait `forwardX = −sin(ry)·cos(rx)`, `forwardY = sin(rx)`, seul `forwardZ` identique : les facteurs changent de ligne. **Ne pas « corriger » les formules sans décider d'abord de changer l'ordre d'Euler des deux côtés (formules ET three.js).**
+- Limite assumée de notre ordre : après un lacet de **90°**, il ne reste plus rien devant (`cos(90°) = 0`) — le tangage, qui agit sur ce reste, ne peut donc plus lever le nez : le nez regarde de côté. Invisible aux angles de jeu actuels ; à revoir le jour où les ennemis feront des loopings.
+
+#### 7. Après la boussole : la poussée
+
+```ts
+ship.velocity.x += forwardX * ship.intent.thrust * ship.thrustPower * dt;
+```
+
+Trois mondes en chaîne : `rotation` dit *comment le vaisseau est tourné* ; `forward` dit *dans quelle direction il pousse* ; `velocity` dit *où il glisse réellement*. Le moteur pousse toujours avec la même force (le contrat du §1) ; seule la direction change. Moteur coupé, l'inertie garde la vitesse — la trajectoire vit sa vie indépendante de l'attitude jusqu'au prochain battement. C'est toute la physique du jeu.
+
 ### `collisions.ts` — l'arbitre : détecter, répondre
 
 - **Un système, pas un acteur** — l'exception assumée de la discipline state n° 2 : le seul organe autorisé à lire PLUSIEURS listes (vaisseaux × projectiles × astéroïdes). Un arbitre, pas un joueur.
@@ -969,5 +1129,3 @@ Démo historique générée automatiquement (2 fichiers : `app/terre2065/page.ts
 Multi (serveur), éditeur de niveaux, sauvegardes, VR : aucun dossier. Ils viendront, à leur heure, se ranger dans la logique ci-dessus. L'architecture est prévue pour les accueillir ; on ne les construit pas avant l'heure.
 
 ---
-
-*Dernière mise à jour : 12 nov. 2026. Toute évolution de la structure se note ici AVANT d'être codée.*
