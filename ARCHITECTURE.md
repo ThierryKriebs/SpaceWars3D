@@ -494,19 +494,32 @@ on(e => { if (e.type === "enemy:death") mission.complete("destroy-patrol"); }); 
 Le métier de `controls/` tient en trois verbes : **capter** (le clavier, la souris, plus tard le gamepad et la VR), **traduire** (des périphériques en *actions* : `thrust`, `fire` — jamais "flèche du haut"), **écrire** (l'état des actions dans la photo, champ `input`).
 
 ```ts
-// controls/index.ts — tous les périphériques parlent "actions",
+// controls/keyboard.ts — tous les périphériques parlent "actions",
 // le jeu ne voit jamais le matériel.
 import { state } from "../core/state";
+import type { InputIntent } from "@/types";
 
-export function attachControls() {          // appelé UNE seule fois, au montage
-  window.addEventListener("keydown", (e) => {
-    if (e.code === "ArrowUp" || e.code === "KeyW") state.input.thrust = true;
-    if (e.code === "Space") state.input.fire = true;
-  });
-  window.addEventListener("keyup", (e) => {
-    if (e.code === "ArrowUp" || e.code === "KeyW") state.input.thrust = false;
-    if (e.code === "Space") state.input.fire = false;
-  });
+// LA table des touches : une ligne par touche physique (e.code — la clé de recherche
+// KEYMAP[e.code] : on ne peut rien ajouter à la clé). Label AZERTY en commentaire.
+// keydown et keyup partagent cette table : ils ne peuvent pas diverger.
+// (les labels d'affichage viendront, le jour d'une interface de remapping, du e.key
+// capturé à l'exécution — chaque keydown porte à la fois e.code et e.key)
+const KEYMAP: Record<string, keyof InputIntent> = {
+  ArrowUp: "thrust",
+  KeyW: "thrust", // AZERTY: Z
+  Space: "stop",
+  ArrowLeft: "yawLeft",
+  // ...
+};
+
+function applyKey(e: KeyboardEvent, value: number) { // 1 = enfoncée, 0 = relâchée
+  const action = KEYMAP[e.code];
+  if (action) state.input[action] = value;
+}
+
+export function attachKeyboard() {         // appelé UNE seule fois, au montage
+  window.addEventListener("keydown", (e) => applyKey(e, 1));
+  window.addEventListener("keyup", (e) => applyKey(e, 0));
   // plus tard : gamepad, WebXR — mêmes actions, même champ input.
 }
 ```
@@ -514,8 +527,8 @@ export function attachControls() {          // appelé UNE seule fois, au montag
 Et la contrepartie dans la photo :
 
 ```ts
-// state.ts — le champ input : des ACTIONS, pas des boutons.
-input: { thrust: false, fire: false }
+// state.ts — le champ input : des ACTIONS (valeurs 0-1), pas des boutons.
+input: { thrust: 0, stop: 0, yawLeft: 0, ... } as InputIntent
 ```
 
 **Trois règles des entrées :**

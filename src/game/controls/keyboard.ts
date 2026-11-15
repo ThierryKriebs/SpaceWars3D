@@ -1,28 +1,33 @@
 import { state } from "../core/state";
+import type { InputIntent } from "@/types";
 
 // keyboard.ts — captures the keyboard and translates it into ACTIONS
 // (0-1 intentions), never into movements. The game never sees the keys.
+
+// THE keymap: one line per physical key (e.code — the lookup key below), AZERTY
+// label in comment. keydown and keyup share this table, so they can never diverge.
+// Display labels for a future remap UI will come from e.key captured at runtime
+// (each keydown carries both e.code and e.key), not from these comments.
+const KEYMAP: Record<string, keyof InputIntent> = {
+  ArrowUp: "thrust",
+  KeyW: "thrust", // AZERTY: Z
+  ArrowDown: "brake",
+  KeyS: "brake", // AZERTY: S
+  Space: "stop",
+  ArrowLeft: "yawLeft",
+  ArrowRight: "yawRight",
+  KeyQ: "pitchUp", // AZERTY: A
+  KeyE: "pitchDown", // AZERTY: E
+  KeyA: "rollLeft", // AZERTY: Q
+  KeyD: "rollRight", // AZERTY: D
+};
+
+function applyKey(e: KeyboardEvent, value: number): void {
+  const action = KEYMAP[e.code];
+  if (action) state.input[action] = value;
+}
+
 export function attachKeyboard(): void {
-  window.addEventListener("keydown", (e) => {
-    if (e.code === "ArrowUp" || e.code === "KeyW") state.input.thrust = 1;
-    if (e.code === "ArrowDown" || e.code === "KeyS") state.input.brake = 1;
-    if (e.code === "Space") state.input.stop = 1; // auto-brake to a full stop
-    if (e.code === "ArrowLeft") state.input.yawLeft = 1;
-    if (e.code === "ArrowRight") state.input.yawRight = 1;
-    if (e.code === "KeyQ") state.input.pitchUp = 1; // nose up (pitch)
-    if (e.code === "KeyE") state.input.pitchDown = 1; // nose down (pitch)
-    if (e.code === "KeyA") state.input.rollLeft = 1; // roll left (AZERTY: the "Q" key)
-    if (e.code === "KeyD") state.input.rollRight = 1; // roll right
-  });
-  window.addEventListener("keyup", (e) => {
-    if (e.code === "ArrowUp" || e.code === "KeyW") state.input.thrust = 0;
-    if (e.code === "ArrowDown" || e.code === "KeyS") state.input.brake = 0;
-    if (e.code === "Space") state.input.stop = 0; // release the auto-brake
-    if (e.code === "ArrowLeft") state.input.yawLeft = 0;
-    if (e.code === "ArrowRight") state.input.yawRight = 0;
-    if (e.code === "KeyQ") state.input.pitchUp = 0;
-    if (e.code === "KeyE") state.input.pitchDown = 0;
-    if (e.code === "KeyA") state.input.rollLeft = 0;
-    if (e.code === "KeyD") state.input.rollRight = 0;
-  });
+  window.addEventListener("keydown", (e) => applyKey(e, 1));
+  window.addEventListener("keyup", (e) => applyKey(e, 0));
 }

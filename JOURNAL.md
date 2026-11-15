@@ -277,3 +277,39 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : test visuel sur `localhost:3000/play` — KeyA/KeyD fait rouler le vaisseau (6DOF complet : Z/W poussée, S/↓ rétro, Espace frein, ←/→ lacet, Q/E tangage, A/D roulis), signe de l'axe Z à valider en jouant, horizon qui s'incline avec la caméra. Puis commit + push par Thierry. Ensuite au choix : `stopPower` dédié pour le frein auto, ou autre.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-15 — Session 14 (suite 2) : keyboard.ts en table unique (KEYMAP), labels AZERTY en données — prêt pour le remapping
+
+**Fait** : `keyboard.ts` réécrit — une seule table `KEYMAP` (`Record<string, { action, azerty }>`, une ligne par touche physique) + une seule fonction `applyKey(e, value)` appelée par keydown (1) et keyup (0) : keydown/keyup ne peuvent plus diverger (classe de bug de la session 11). La clé de l'objet reste le `e.code` brut (clé de recherche `KEYMAP[e.code]`) — renommer la clé (ex. `KeyW_z`) casserait la recherche ; le label AZERTY est stocké dans la valeur comme donnée, prêt pour une future interface de remapping (qui éditera/persistera cette table ; la clé physique reste la référence stable, indépendante de la layout). Décision actée avec Thierry après discussion : canonical = `e.code` + labels en données (et PAS `e.key`, qui lierait la config à la layout). ARCHITECTURE.md section 10 mise à jour dans le même pas (règle 8) : exemple `controls/keyboard.ts` en table + champ `input` en 0-1. Vérifié : `tsc --noEmit` sans erreur hors démo ; `GET /play` → 200 ; chunk servi contient `KEYMAP`, `KEYMAP[e.code]`, `applyKey` ×2. Non commité : Thierry committera.
+
+**Appris / incidents** : rien de cassé. `e.code` vs `e.key` tranché : les jeux compétitifs utilisent la position physique (stable), l'affichage des labels se fait côté UI via la layout — d'où label en donnée, pas dans la clé. Le remapping reste une idée V2 (UI dans `components/ui/menus/`), non implémentée.
+
+**Prochaine étape** : test visuel sur `localhost:3000/play` (toutes les touches répondent comme avant, roulis compris), puis commit + push par Thierry (roulis + KEYMAP + docs). Ensuite au choix : `stopPower` dédié pour le frein auto, ou autre.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-15 — Session 14 (suite 3) : le champ `azerty` redevient un commentaire (décision Thierry)
+
+**Fait** : `keyboard.ts` — la table `KEYMAP` redevient plate (`Record<string, keyof InputIntent>`, une ligne par touche, label AZERTY en commentaire) ; `applyKey` lit directement `KEYMAP[e.code]`. Raison actée avec Thierry : le champ `azerty` en donnée n'avait aucun consommateur réel — le gameplay suit le `e.code` physique (identique sur toute layout, donc jouable même sur QWERTZ), et les labels d'affichage viendront à l'exécution de la layout du système (`navigator.keyboard.getLayoutMap()`, Chrome/Edge, fallback = commentaires) le jour de l'UI de remapping. Un label codé en dur aurait été faux hors AZERTY (ex. QWERTZ). ARCHITECTURE.md section 10 remis en accord (règle 8). Vérifié : `tsc --noEmit` sans erreur hors démo ; `GET /play` → 200 ; chunk servi contient `const KEYMAP = { KeyW: "thrust" ... }` + `KEYMAP[e.code]`, et plus aucune occurrence de `azerty`. Non commité : Thierry committera.
+
+**Appris / incidents** : rien de cassé. Leçon : une donnée « pour plus tard » n'a de valeur que si son consommateur futur est précis — ici le consommateur (labels runtime) ne passait pas par le champ, donc commentaire suffisait. La clé physique (`e.code`) reste la référence stable et sauvegardable pour le futur remapping.
+
+**Prochaine étape** : test visuel sur `localhost:3000/play` (6DOF complet répond comme avant), puis commit + push par Thierry (roulis + KEYMAP plate + docs + journal). Ensuite au choix : `stopPower` dédié pour le frein auto, ou autre.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-15 — Session 14 (suite 4) : labels de touches pour le futur remapping — e.key capturé à l'exécution, pas d'API externe (idée notée, non implémentée)
+
+**Fait** : décision notée avec Thierry pour la V2 (UI de remapping) : les labels d'affichage ne passeront PAS par `navigator.keyboard.getLayoutMap()` (API Chrome/Edge uniquement), mais par **`e.key` capturé à l'exécution** — chaque événement keydown porte à la fois `e.code` (position physique) et `e.key` (lettre imprimée par la layout active), donc on construit gratuitement un dictionnaire `labelByCode[e.code] = e.key` dans tous les navigateurs, avec le label exact du clavier réellement branché (AZERTY, QWERTZ, QWERTY…). Normalisations à prévoir le jour J : `e.key === " "` pour Espace, `"Dead"` pour les touches mortes, casse (Maj) → `toLowerCase()`. Cohérence (règle 8) : les commentaires de `keyboard.ts` et de la section 10 d'ARCHITECTURE.md qui mentionnaient `getLayoutMap()` ont été corrigés dans le même pas. **Non implémenté** : aucune logique ajoutée, c'est une idée V2.
+
+**Appris / incidents** : rien de cassé. Leçon : préférer les données déjà présentes dans l'événement (`e.code` + `e.key`) à une API de layout externe — moins de dépendances, label toujours juste.
+
+**Prochaine étape** : test visuel sur `localhost:3000/play`, puis commit + push par Thierry (roulis + KEYMAP + docs + journal). Ensuite au choix : `stopPower` dédié pour le frein auto, ou autre.
+
+**Règle du projet** : une session = une victoire.
