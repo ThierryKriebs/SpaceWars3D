@@ -253,3 +253,15 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : à la reprise — (a) Thierry committe + pushe le chantier en attente après test visuel (Q 3-4 s = looping complet cadré) ; (b) réexpliquer la formule `forward` et discuter la règle du cœur pur ; (c) ensuite roulis (axe Z, touches libres ex. A/D) pour finir le 6DOF, ou `stopPower` dédié pour le frein auto.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-15 — Session 14 : reprise — ARCHITECTURE.md explique la boussole `forward`, les deux questions ouvertes tranchées
+
+**Fait** : pris connaissance du nouveau ARCHITECTURE.md (commit `20c010f`, 15 nov. 2026) — nouvelle section « La boussole `forward` — la trigonométrie du nez » (~160 lignes + 3 schémas `docs/schemas/lacet.png`, `tangage.png`, `roulis.png`) qui explique ligne par ligne les 3 lignes de `newton.ts` (`forwardX/Y/Z`, dont `forwardY = sin(rx)·cos(ry)`) : contrat de norme 1, sin/cos lus comme des pourcentages de mouvement, ce que chaque rotation déplace (le roulis ne déplace pas le nez), cas extrêmes, ordre des calculs = ordre Euler XYZ de three.js. **Cela clôt la question ouverte 1** de la session 13 (la formule `forward` réexpliquée autrement). **Question ouverte 2 tranchée avec Thierry : la règle « zéro three.js dans `game/` » est conservée telle quelle** — ARCHITECTURE.md ne bouge pas côté règle. Prochaine étape choisie : **roulis (axe Z)** pour finir le 6DOF — code présenté en chat (5 fichiers, ~14 lignes : `intents.ts`, `state.ts`, `keyboard.ts` KeyA/KeyD, `PlayerShip.ts`, `newton.ts`), **en attente du « applique »** de Thierry. Aucun fichier de code modifié.
+
+**Appris / incidents** : rien de cassé. La nouvelle section actée dans le doc : limite assumée de l'ordre Euler XYZ (à lacet 90°, `cos(ry)=0`, le tangage n'agit plus sur le nez) — cohérent avec le code, à revoir si des loopings ennemis arrivent. La ligne de bas de page « Dernière mise à jour » a été retirée d'ARCHITECTURE.md dans `20c010f` (commit de Thierry, laissé tel quel). Côté doc, cohérence relue (règle 8) : la section 11 du sommaire pointe bien vers la nouvelle section, aucune contradiction avec le reste.
+
+**Prochaine étape** : sur « applique » de Thierry, écrire le roulis (KeyA/KeyD), puis vérifier `tsc --noEmit` propre hors démo, `GET /play` → 200, chunk servi contenant `rollLeft`/`KeyA`, test visuel en jeu (roulis + signe de l'axe Z à confirmer en jouant ; l'horizon s'inclinera avec la caméra collée au repère vaisseau — clamp caméra à discuter seulement si mal de mer). Puis commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
