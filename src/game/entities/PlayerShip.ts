@@ -9,12 +9,12 @@ export function spawnPlayer(): void {
     velocity: { x: 0, y: 0, z: 0 }, // starts at rest — press W to accelerate
     rotation: { x: 0, y: 0, z: 0 },
     angularVelocity: { x: 0, y: 0, z: 0 }, // starts without spin
-    intent: { thrust: 0, brake: 0, stop: 0, yawLeft: 0, yawRight: 0, pitchUp: 0, pitchDown: 0 },
+    intent: { thrust: 0, brake: 0, stop: 0, yawLeft: 0, yawRight: 0, pitchUp: 0, pitchDown: 0, rollLeft: 0, rollRight: 0 },
     thrustPower: 20,
     brakePower: 20,
-    turnPower: 3, // rad/s² of angular acceleration at full yaw intent
-    maxTurnRate: 1.5, // rad/s cap (≈ 86°/s)
-    maxSpeed: 30,
+    turnPower: 3, // rad/s² acceleration for each axis of angular velocity (roll, pitch, yaw)
+    maxTurnRate: 1.5, // rad/s cap (≈ 86°/s) for each axis of angular velocity (roll, pitch, yaw)
+    maxSpeed: 30, // maximum linear speed (units/s) — the ship cannot go faster than this, whatever the thrust.
   };
   state.ships.push(player);
 }
@@ -32,4 +32,6 @@ export function updatePlayer(): void {
   player.intent.yawRight = state.input.yawRight;
   player.intent.pitchUp = state.input.pitchUp;
   player.intent.pitchDown = state.input.pitchDown;
+  player.intent.rollLeft = state.input.rollLeft;
+  player.intent.rollRight = state.input.rollRight;
 }

@@ -5,7 +5,8 @@ import { state } from "../core/state";
 export function updateShips(dt: number): void {
   for (const ship of state.ships) {
     // The ship's own forward axis (nose = local -Z) after the ship's rotation —
-    // same composition as three.js Euler XYZ (roll z = 0 for now):
+    // same composition as three.js Euler XYZ (roll rz needs no term here:
+    // rotating around Z leaves the nose vector -Z unchanged):
     // forward = (-sin ry, sin rx·cos ry, -cos rx·cos ry).
     const rx = ship.rotation.x;
     const ry = ship.rotation.y;
@@ -64,6 +65,11 @@ export function updateShips(dt: number): void {
     ship.angularVelocity.y += (ship.intent.yawLeft - ship.intent.yawRight) * ship.turnPower * dt;
     if (ship.angularVelocity.y > ship.maxTurnRate) ship.angularVelocity.y = ship.maxTurnRate;
     if (ship.angularVelocity.y < -ship.maxTurnRate) ship.angularVelocity.y = -ship.maxTurnRate;
+    // Roll: positive rotation.z lifts the right wing (+X) toward +Y = roll LEFT
+    // from the pilot's view (sign to be confirmed in play, like the yaw was).
+    ship.angularVelocity.z += (ship.intent.rollLeft - ship.intent.rollRight) * ship.turnPower * dt;
+    if (ship.angularVelocity.z > ship.maxTurnRate) ship.angularVelocity.z = ship.maxTurnRate;
+    if (ship.angularVelocity.z < -ship.maxTurnRate) ship.angularVelocity.z = -ship.maxTurnRate;
     ship.rotation.x += ship.angularVelocity.x * dt;
     ship.rotation.y += ship.angularVelocity.y * dt;
     ship.rotation.z += ship.angularVelocity.z * dt;

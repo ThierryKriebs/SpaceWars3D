@@ -265,3 +265,15 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : sur « applique » de Thierry, écrire le roulis (KeyA/KeyD), puis vérifier `tsc --noEmit` propre hors démo, `GET /play` → 200, chunk servi contenant `rollLeft`/`KeyA`, test visuel en jeu (roulis + signe de l'axe Z à confirmer en jouant ; l'horizon s'inclinera avec la caméra collée au repère vaisseau — clamp caméra à discuter seulement si mal de mer). Puis commit + push par Thierry.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-15 — Session 14 (suite) : roulis (axe Z) appliqué — 6DOF complet
+
+**Fait** : sur « applique » de Thierry, roulis branché de bout en bout (7 éditions, 5 fichiers, ~16 lignes) : `InputIntent` gagne `rollLeft`/`rollRight`, `state.input` initialisé, `keyboard.ts` capte KeyA/KeyD (keydown + keyup — AZERTY : touches « Q »/« D »), `updatePlayer()` recopie vers l'intent du joueur, `newton.ts` intègre `angularVelocity.z` (plafonnée à `±maxTurnRate`, `rotation.z +=` existait déjà). La formule `forward` est inchangée — le roulis ne déplace pas le nez (section « boussole forward » d'ARCHITECTURE.md) ; commentaire de newton.ts corrigé en ce sens. `CameraRig` inchangé (quaternion complet : l'horizon suivra le roulis). Vérifié : `tsc --noEmit` sans erreur hors démo Terre2065 ; `GET /play` → 200 ; le chunk servi contient `rollLeft` (×5 : clavier, state, fiche, updatePlayer) + `KeyA` ×2 + le bloc newton `angularVelocity.z += (rollLeft - rollRight) * turnPower * dt`. Non commité : Thierry committera.
+
+**Appris / incidents** : rien de cassé. Règle appliquée : une seule édition à la fois par fichier, puis relecture entière des 5 fichiers — aucune ligne perdue. Signe de l'axe Z prévu (`rollLeft` = rotation.z positive = aile droite qui monte) à confirmer en jouant, comme le lacet.
+
+**Prochaine étape** : test visuel sur `localhost:3000/play` — KeyA/KeyD fait rouler le vaisseau (6DOF complet : Z/W poussée, S/↓ rétro, Espace frein, ←/→ lacet, Q/E tangage, A/D roulis), signe de l'axe Z à valider en jouant, horizon qui s'incline avec la caméra. Puis commit + push par Thierry. Ensuite au choix : `stopPower` dédié pour le frein auto, ou autre.
+
+**Règle du projet** : une session = une victoire.

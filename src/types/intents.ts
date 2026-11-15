@@ -8,4 +8,6 @@ export interface InputIntent {
   yawRight: number; // 0-1: turn right around Y (lacet)
   pitchUp: number; // 0-1: nose up around X (tangage)
   pitchDown: number; // 0-1: nose down around X (tangage)
+  rollLeft: number; // 0-1: roll left around Z (roulis)
+  rollRight: number; // 0-1: roll right around Z (roulis)
 }
