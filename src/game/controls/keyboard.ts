@@ -15,22 +15,36 @@ const KEYMAP: Record<string, keyof InputIntent> = {
   KeyD: "strafeRight",        // (AZERTY: D)             Translation to Axis +X
   ShiftLeft: "liftUp",        // (AZERTY: Maj gauche)    Translation to Axis +Y
   ControlLeft: "liftDown",    // (AZERTY: Ctrl gauche)   Translation to Axis -Y
-  Space: "stopAllTranslation",  // (AZERTY: space)         Auto-brake, stop only all Translation
-  AltLeft: "stopAllRotation",   // (AZERTY: Alt gauche)    Auto-brake, stop only all Rotation
-  Numpad8: "pitchUp",      // (AZERTY: fleche droite) Rotation around +X
-  Numpad5: "pitchDown",   // (AZERTY: Entree droite, numpad) Rotation around -X
+  Space: "stopAllTranslation",// (AZERTY: space)         Auto-brake, stop only all Translation
+  AltLeft: "stopAllRotation", // (AZERTY: Alt gauche)    Auto-brake, stop only all Rotation
+  Numpad8: "pitchUp",         // (AZERTY: 8, numpad)     Rotation around +X
+  Numpad5: "pitchDown",       // (AZERTY: 5, numpad)     Rotation around -X
   Numpad4: "yawLeft",         // (AZERTY: 4, numpad)     Rotation around +Y
   Numpad6: "yawRight",        // (AZERTY: 6, numpad)     Rotation around -Y
-  ArrowRight: "rollRight",       // (AZERTY: 8, numpad)     Rotation around -Z
-  NumpadEnter: "rollLeft",        // (AZERTY: 5, numpad)     Rotation around +Z
+  ArrowRight: "rollRight",    // (AZERTY: fleche droite) Rotation around -Z 
+  NumpadEnter: "rollLeft",    // (AZERTY: Entree droite, numpad)     Rotation around +Z 
 };
 
 function applyKey(e: KeyboardEvent, value: number): void {
   const action = KEYMAP[e.code];
-  if (action) state.input[action] = value;
+  if (action) {
+    // preventDefault on keydown: stops Alt from handing focus to the browser
+    // menu — its keyup would then never reach the page (action stuck at 1).
+    if (value === 1) e.preventDefault();
+    state.input[action] = value;
+  }
+}
+
+// Safety net: any keyup the page never receives (Alt, Cmd, Alt+Tab, focus lost
+// while a key is held) is cleared here, when the window loses focus.
+function resetInputs(): void {
+  for (const action of Object.keys(state.input) as (keyof InputIntent)[]) {
+    state.input[action] = 0;
+  }
 }
 
 export function attachKeyboard(): void {
   window.addEventListener("keydown", (e) => applyKey(e, 1));
   window.addEventListener("keyup", (e) => applyKey(e, 0));
+  window.addEventListener("blur", resetInputs); // blur: window lost focus, reset all keys to 0
 }

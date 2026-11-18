@@ -409,3 +409,27 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : commit + push par Thierry, puis test visuel sur `localhost:3000/play` (vérifier les 12 directions + les 2 freins en jeu). Ensuite au choix : `stopPower` dédié pour Espace, ou prochain bloc (HUD, props…).
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-18 — Session 15 (suite) : fix « Alt coincé » — preventDefault + reset au blur
+
+**Fait** : `keyboard.ts` — `e.preventDefault()` au keydown des touches mappées (Alt ne donne plus le focus à la barre de menu du navigateur, son `keyup` arrive donc bien) + `resetInputs()` branché sur le `blur` de `window` (toute intention dont le keyup n'a pas été reçu repasse à 0). `AltLeft` reste sur `stopAllRotation` (aucune touche de remplacement choisie). ARCHITECTURE.md §10 synchronisé (règle 8) : extrait de code + 4e règle « aucune touche ne reste coincée ». Vérifié : `tsc --noEmit` sans erreur hors démo/layout (préexistantes).
+
+**Appris / incidents** : un appui bref sur Alt faisait perdre son `keyup` à la page (focus pris par le menu du navigateur) → `state.input.stopAllRotation` bloqué à 1 → frein de rotation permanent dans newton.ts, symptôme « on ne peut plus tourner ». Le `blur` de la fenêtre est le filet de sécurité général : perte de focus = reset de toutes les intentions. Signalé sans corriger (non demandé) : les 4 derniers commentaires AZERTY du KEYMAP (Numpad8/Numpad5/ArrowRight/NumpadEnter) sont décalés par rapport aux actions.
+
+**Prochaine étape** : commit + push par Thierry (remap session 15 + fix Alt + docs + journal). Test visuel : appui bref sur Alt → la rotation repart bien au relâchement ; Alt+Tab ne bloque plus aucune touche. Ensuite au choix : `stopPower` dédié pour Espace, ou prochain bloc (HUD, props…).
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-18 — Session 15 (suite 2) : incident de collaboration sur le KEYMAP — le mapping de Thierry est intact ; seul le fix Alt (demandé explicitement) diffère de HEAD
+
+**Fait** : `keyboard.ts` — le KEYMAP du working tree est celui édité par Thierry (non commité) : `Numpad8=yawLeft`, `Numpad5=yawRight`, `Numpad4=rollRight`, `Numpad6=rollLeft`, `ArrowRight=pitchUp`, `NumpadEnter=pitchDown`. L'agent n'y a plus aucun diff : son édition fautive du bloc rotations (faite sans « applique » explicite sur le mapping) a été écrasée par l'édition parallèle de Thierry. Seul changement de l'agent dans ce fichier, demandé explicitement : le fix Alt (`preventDefault` au keydown + `resetInputs` au `blur`). ARCHITECTURE.md §10 inchangé (extrait KeyW/Space/Numpad4 toujours correct). Vérifié : `tsc --noEmit` sans erreur hors démo/layout.
+
+**Appris / incidents** : incident de collaboration — l'agent a réécrit le KEYMAP sans autorisation explicite sur ce mapping, sur une mauvaise interprétation de « 8 ne doit pas faire arrowRight » ; le fichier étant édité en parallèle par Thierry, les éditions se sont écrasées. Règles retenues : (1) l'agent ne touche JAMAIS au KEYMAP sans « applique » explicite ; (2) avant toute édition, `git diff` pour voir qui a modifié le fichier entre-temps ; (3) la confusion initiale venait des commentaires décalés du commit `137a61f` (ligne `ArrowRight` commentée « 8, numpad ») — à réaligner un jour, sur demande uniquement. Rappel : NumLock OFF = le pavé émet des flèches (ex. 6 → `ArrowRight`).
+
+**Prochaine étape** : commit + push par Thierry (son nouveau mapping + fix Alt + docs + journal). Test visuel sur `/play`, NumLock ON. Ensuite au choix : `stopPower` dédié pour Espace, ou prochain bloc (HUD, props…).
+
+**Règle du projet** : une session = une victoire.

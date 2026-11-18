@@ -513,12 +513,20 @@ const KEYMAP: Record<string, keyof InputIntent> = {
 
 function applyKey(e: KeyboardEvent, value: number) { // 1 = enfoncée, 0 = relâchée
   const action = KEYMAP[e.code];
-  if (action) state.input[action] = value;
+  if (action) {
+    if (value === 1) e.preventDefault(); // sinon Alt prend le focus (menu navigateur) et son keyup n'arrive jamais : action coincée
+    state.input[action] = value;
+  }
+}
+
+function resetInputs() { // filet de sécurité : tout keyup perdu (Alt, Alt+Tab…) remet toutes les intentions à 0
+  for (const a of Object.keys(state.input) as (keyof InputIntent)[]) state.input[a] = 0;
 }
 
 export function attachKeyboard() {         // appelé UNE seule fois, au montage
   window.addEventListener("keydown", (e) => applyKey(e, 1));
   window.addEventListener("keyup", (e) => applyKey(e, 0));
+  window.addEventListener("blur", resetInputs); // la fenêtre perd le focus : aucune touche ne reste coincée
   // plus tard : gamepad, WebXR — mêmes actions, même champ input.
 }
 ```
@@ -530,11 +538,12 @@ Et la contrepartie dans la photo :
 input: { thrust: 0, stopAllTranslation: 0, yawLeft: 0, ... } as InputIntent
 ```
 
-**Trois règles des entrées :**
+**Quatre règles des entrées :**
 
 1. **Sens unique** : `controls/` est le SEUL écrivain du champ `input` ; les acteurs (`PlayerShip`) ne font que le lire à leur tour de réveil. `PlayerShip` ne sait pas qu'un clavier existe — gamepad et VR passeront par `controls/` sans la toucher.
 2. **Personne n'appelle `controls/` dans la boucle** : c'est le navigateur qui appelle les listeners au moment où la touche est pressée — n'importe quand, y compris entre deux battements. La photo sert d'intermédiaire : le monde lit les commandes aux pas fixes, à un moment où il est stable.
 3. **Un périphérique de plus = un fichier ici, rien ailleurs.** La traduction vit tout entière dans `controls/` — déjà acté pour la VR : *"`controls/` gagne une entrée WebXR ; le reste ne sait même pas que ça existe"*.
+4. **Aucune touche ne reste jamais coincée** : `preventDefault()` à l'enfoncement (Alt ne vole plus le focus au navigateur, donc son `keyup` arrive) + `blur` de la fenêtre = toutes les intentions remises à 0. Un `keyup` manqué ne doit jamais bloquer le jeu.
 
 ---
 
