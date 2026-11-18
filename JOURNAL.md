@@ -397,3 +397,15 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : commit + push par Thierry, test visuel, puis au choix : `stopPower` dédié pour Espace ou prochain bloc (HUD, props…).
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-18 — Session 15 : remap clavier complet (AZERTY + pavé numérique)
+
+**Fait** : `keyboard.ts` — KEYMAP remplacé par le schéma de Thierry (14 touches) : translations Z(-Z)/S(+Z)/Q(+X)/D(-X)/Maj gauche(+Y)/Ctrl gauche(-Y) = `KeyW/KeyS/KeyA/KeyD/ShiftLeft/ControlLeft`, rotations pavé 8(-Z)/5(+Z)/4(+Y)/6(-Y) + flèche droite(+X) + Entrée droite pavé(-X) = `Numpad8/rollRight`, `Numpad5/rollLeft`, `Numpad4/yawLeft`, `Numpad6/yawRight`, `ArrowRight/pitchUp`, `NumpadEnter/pitchDown` ; freins conservés : `Space/stopAllTranslation`, `AltLeft/stopAllRotation` (choix Thierry : Alt gauche remplace Maj gauche pour le frein de rotation). Toutes les anciennes entrées (flèches haut/bas/gauche, KeyQ/KeyE, ShiftRight, Comma/Period, PageUp/PageDown) supprimées. Signes calés sur `newton.ts` (rotation +Z = rollLeft, donc 8 = -Z = rollRight). ARCHITECTURE.md : extrait KEYMAP §controls mis à jour (règle 8). Vérifié : `tsc --noEmit` sans erreur hors démo. Non commité : Thierry committera.
+
+**Appris / incidents** : rien de cassé. Point d'attention : avec NumLock OFF, le pavé émet des flèches (ex. 6 → `ArrowRight`) — garder NumLock ON pour que 4/5/6/8 donnent bien `Numpad4/5/6/8` et que la flèche droite reste le pitch.
+
+**Prochaine étape** : commit + push par Thierry, puis test visuel sur `localhost:3000/play` (vérifier les 12 directions + les 2 freins en jeu). Ensuite au choix : `stopPower` dédié pour Espace, ou prochain bloc (HUD, props…).
+
+**Règle du projet** : une session = une victoire.

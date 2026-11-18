@@ -505,10 +505,9 @@ import type { InputIntent } from "@/types";
 // (les labels d'affichage viendront, le jour d'une interface de remapping, du e.key
 // capturé à l'exécution — chaque keydown porte à la fois e.code et e.key)
 const KEYMAP: Record<string, keyof InputIntent> = {
-  ArrowUp: "thrust",
   KeyW: "thrust", // AZERTY: Z
   Space: "stopAllTranslation",
-  ArrowLeft: "yawLeft",
+  Numpad4: "yawLeft",
   // ...
 };
 

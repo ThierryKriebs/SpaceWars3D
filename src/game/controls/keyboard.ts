@@ -9,23 +9,20 @@ import type { InputIntent } from "@/types";
 // Display labels for a future remap UI will come from e.key captured at runtime
 // (each keydown carries both e.code and e.key), not from these comments.
 const KEYMAP: Record<string, keyof InputIntent> = {
-  ArrowUp: "thrust",
-  KeyW: "thrust",                     // (AZERTY: Z)              Translation to Axis -Z 
-  ArrowDown: "brake",                 // (AZERTY: ArrowDown or S) Translation to Axis +Z 
-  KeyS: "brake",                      // (AZERTY: ArrowDown or S) Translation to Axis +Z 
-  Space: "stopAllTranslation",        // (AZERTY: space)          Auto-brake, stop only all Translation, 
-  ArrowLeft: "yawLeft",               // (AZERTY: ArrowLeft)      yaw => (Lacet) turn Left around Y 
-  ArrowRight: "yawRight",             // (AZERTY: ArrowRight)     yaw => (Lacet) turn Right around Y
-  KeyQ: "pitchUp",                    // (AZERTY: A)              pitch => (Tangage) turn Up around X
-  KeyE: "pitchDown",                  // (AZERTY: E)              pitch => (Tangage) turn Down around X
-  KeyA: "rollLeft",                   // (AZERTY: Q)              roll => (Lacet) turn Left around Z
-  KeyD: "rollRight",                  // (AZERTY: D)              roll => (Lacet) turn Right around Z
-  ShiftLeft: "stopAllRotation",       // (AZERTY: Maj gauche)     shift => Auto-brake, stop only all Rotation
-  ShiftRight: "stopAllRotation",      // (AZERTY: Maj droite)     shift => Auto-brake, stop only all Rotation
-  Comma: "strafeLeft",                // (AZERTY: ;)              Translation to Axis -X
-  Period: "strafeRight",              // (AZERTY: :)              Translation to Axis +X
-  PageUp: "liftUp",                   // (AZERTY: PageUp)         Translation to Axis +Y
-  PageDown: "liftDown",               // (AZERTY: PageDown)       Translation to Axis -Y
+  KeyW: "thrust",             // (AZERTY: Z)             Translation to Axis -Z (forward)
+  KeyS: "brake",              // (AZERTY: S)             Translation to Axis +Z (backward)
+  KeyA: "strafeLeft",         // (AZERTY: Q)             Translation to Axis -X
+  KeyD: "strafeRight",        // (AZERTY: D)             Translation to Axis +X
+  ShiftLeft: "liftUp",        // (AZERTY: Maj gauche)    Translation to Axis +Y
+  ControlLeft: "liftDown",    // (AZERTY: Ctrl gauche)   Translation to Axis -Y
+  Space: "stopAllTranslation",  // (AZERTY: space)         Auto-brake, stop only all Translation
+  AltLeft: "stopAllRotation",   // (AZERTY: Alt gauche)    Auto-brake, stop only all Rotation
+  Numpad8: "pitchUp",      // (AZERTY: fleche droite) Rotation around +X
+  Numpad5: "pitchDown",   // (AZERTY: Entree droite, numpad) Rotation around -X
+  Numpad4: "yawLeft",         // (AZERTY: 4, numpad)     Rotation around +Y
+  Numpad6: "yawRight",        // (AZERTY: 6, numpad)     Rotation around -Y
+  ArrowRight: "rollRight",       // (AZERTY: 8, numpad)     Rotation around -Z
+  NumpadEnter: "rollLeft",        // (AZERTY: 5, numpad)     Rotation around +Z
 };
 
 function applyKey(e: KeyboardEvent, value: number): void {
