@@ -445,3 +445,15 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : commit + push par Thierry. Ensuite au choix : prochain bloc (HUD carte des touches, props/collisions pour l'acte 0…) ou autre.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-19 — Session 16 (suite) : freinage par axe avec lock — RETENU pour ce soir, PAS appliqué
+
+**Fait** : aucun fichier de code modifié. Mécanisme de jouabilité retenu à la demande de Thierry (plan détaillé en chat) : par axe (3 translations locales + 3 rotations), si la poussée demandée est **opposée à la vitesse courante** de l'axe, elle décélère jusqu'à 0 et s'y arrête (jamais de changement de signe) tant que la touche est maintenue ; **relâcher + réappuyer** pour repartir dans l'autre sens ; depuis l'arrêt, un seul appui part directement. Double-clic pour désactiver le mécanisme = second temps, non implémenté. Implémentation prévue (3 fichiers, 2 sous-pas) : `brakeLock: Vec3` + `spinBrakeLock: Vec3` dans `ShipSheet`, init à `{0,0,0}` dans `PlayerShip.spawnPlayer()`, logique dans `newton.ts` — poussée × vitesse < 0 → lock = 1, reset quand les 2 touches de l'axe sont relâchées, clamp de la vitesse à 0 tant que lock actif (pas besoin de détecter le keydown : à vitesse 0 il n'y a pas de sens opposé). Sous-pas A = translation, sous-pas B = rotation. `keyboard.ts` / `state.ts` / `intents.ts` inchangés. Point doc (règle 8) : la partie rotation touche VISION.md « assistance de vol = translation seule, jamais la rotation » — décision Thierry : sa demande explicite prime, VISION.md + ARCHITECTURE.md §newton à mettre à jour à l'application.
+
+**Appris / incidents** : rien de cassé. Rappel : 4 fichiers non commités (freins doux session 16 + ce journal) — Thierry committe et pushe avant ce soir.
+
+**Prochaine étape** : ce soir — commit + push, puis appliquer le freinage par axe sur « applique » (sous-pas A translation → vérif `tsc` / `GET /play` 200 / chunk / playtest → sous-pas B rotation → même vérif), maj des docs, commit + push.
+
+**Règle du projet** : une session = une victoire.
