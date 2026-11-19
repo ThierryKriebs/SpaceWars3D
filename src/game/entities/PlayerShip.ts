@@ -12,9 +12,10 @@ export function spawnPlayer(): void {
     intent: { thrust: 0, brake: 0, stopAllTranslation: 0, yawLeft: 0, yawRight: 0, pitchUp: 0, pitchDown: 0, rollLeft: 0, rollRight: 0, stopAllRotation: 0, strafeLeft: 0, strafeRight: 0, liftUp: 0, liftDown: 0 },
     thrustPower: 20,
     brakePower: 20,
+    stopAllBrakePower: 8, // units/s² — stops from maxSpeed (30) in ~3.75 s instead of ~1.5 s with brakePower
     turnPower: 3, // rad/s² acceleration for each axis of angular velocity (roll, pitch, yaw)
     maxTurnRate: 1.5, // rad/s cap (≈ 86°/s) for each axis of angular velocity (roll, pitch, yaw)
-    spinBrakePower: 3, // rad/s² — stops a max spin (1.5 rad/s) in ~0.5 s
+    stopAllSpinBrakePower: 1, // rad/s² — stops a max spin (1.5 rad/s) in ~1.5 s instead of ~0.5 s
     maxSpeed: 30, // maximum linear speed (units/s) — the ship cannot go faster than this, whatever the thrust.
   };
   state.ships.push(player);

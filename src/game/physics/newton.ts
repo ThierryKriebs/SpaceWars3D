@@ -59,7 +59,7 @@ export function updateShips(dt: number): void {
     // Auto-brake (Space): decelerate the WHOLE velocity toward 0, stop there —
     // never reverses, whatever the direction of travel.
     if (ship.intent.stopAllTranslation > 0) {
-      const decel = ship.brakePower * dt;
+      const decel = ship.stopAllBrakePower * dt;
       const v = Math.hypot(ship.velocity.x, ship.velocity.y, ship.velocity.z);
       if (v <= decel) {
         ship.velocity.x = 0;
@@ -107,7 +107,7 @@ export function updateShips(dt: number): void {
     // Spin brake (Shift): decelerate the WHOLE angular velocity toward 0 —
     // same pattern as the Space stop, on the rotation axes.
     if (ship.intent.stopAllRotation > 0) {
-      const decel = ship.spinBrakePower * dt;
+      const decel = ship.stopAllSpinBrakePower * dt;
       const w = Math.hypot(ship.angularVelocity.x, ship.angularVelocity.y, ship.angularVelocity.z);
       if (w <= decel) {
         ship.angularVelocity.x = 0;

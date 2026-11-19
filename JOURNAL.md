@@ -433,3 +433,15 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : commit + push par Thierry (son nouveau mapping + fix Alt + docs + journal). Test visuel sur `/play`, NumLock ON. Ensuite au choix : `stopPower` dédié pour Espace, ou prochain bloc (HUD, props…).
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-19 — Session 16 : freins dédiés et plus doux (Espace / Alt)
+
+**Fait** : `ShipSheet` gagne `stopAllBrakePower` (8 u/s²) et `stopAllSpinBrakePower` (1 rad/s² — remplace `spinBrakePower`), noms alignés sur les intentions `stopAllTranslation`/`stopAllRotation` (proposition Thierry) ; `newton.ts` : le frein Espace lit `ship.stopAllBrakePower`, le frein Alt lit `ship.stopAllSpinBrakePower` (la rétrofusée S garde `brakePower`, inchangée) ; valeurs posées dans `PlayerShip.spawnPlayer()`. Vérifié : `tsc --noEmit` propre hors démo, `GET /play` → 200, chunk recompilé servi contient `ship.stopAllBrakePower * dt` + `ship.stopAllSpinBrakePower * dt` et plus aucun `spinBrakePower` ; playtest Thierry OK (« ça marche » — arrêts doux ressentis en jeu). Non commité : 3 fichiers modifiés, Thierry committera.
+
+**Appris / incidents** : rien de cassé. Le serveur dev orphelin (port 3000) recompile bien tout seul — les chunks servis se lisent dans `.next/dev/static/chunks/` (pas `.next/static/`). Règle 8 : aucun doc racine ne citait `spinBrakePower` hors entrées historiques du JOURNAL — rien à corriger côté docs.
+
+**Prochaine étape** : commit + push par Thierry. Ensuite au choix : prochain bloc (HUD carte des touches, props/collisions pour l'acte 0…) ou autre.
+
+**Règle du projet** : une session = une victoire.
