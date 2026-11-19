@@ -27,4 +27,11 @@ export interface ShipSheet {
   
   maxSpeed: number;
   maxTurnRate: number; // cap on angular velocity per axis (rad/s)
+
+  lockInverseSpeedAxisX: number; // 1 = speed on this axis is clamped at 0 (never reverses) until both of its keys are released
+  lockInverseSpeedAxisY: number;
+  lockInverseSpeedAxisZ: number;
+  lockInverseSpinAxisX: number; // same for the rotation axes (angular velocity clamped at 0 on that axis)
+  lockInverseSpinAxisY: number;
+  lockInverseSpinAxisZ: number;
 }

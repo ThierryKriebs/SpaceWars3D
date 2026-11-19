@@ -17,6 +17,12 @@ export function spawnPlayer(): void {
     maxTurnRate: 1.5, // rad/s cap (≈ 86°/s) for each axis of angular velocity (roll, pitch, yaw)
     stopAllSpinBrakePower: 1, // rad/s² — stops a max spin (1.5 rad/s) in ~1.5 s instead of ~0.5 s
     maxSpeed: 30, // maximum linear speed (units/s) — the ship cannot go faster than this, whatever the thrust.
+    lockInverseSpeedAxisX: 0,
+    lockInverseSpeedAxisY: 0,
+    lockInverseSpeedAxisZ: 0,
+    lockInverseSpinAxisX: 0,
+    lockInverseSpinAxisY: 0,
+    lockInverseSpinAxisZ: 0,
   };
   state.ships.push(player);
 }

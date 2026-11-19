@@ -457,3 +457,15 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : ce soir — commit + push, puis appliquer le freinage par axe sur « applique » (sous-pas A translation → vérif `tsc` / `GET /play` 200 / chunk / playtest → sous-pas B rotation → même vérif), maj des docs, commit + push.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-19 — Session 16 (suite 2) : convention de repères gravée dans le code + lock anti-inversion sur les 6 axes (jouable)
+
+**Fait** : renommages de lisibilité dans `newton.ts` (`shipThrust*` → `shipLocalThrust*`, `forward/right/up X/Y/Z` → `worldForward/worldRight/worldUp X/Y/Z`, `rx/ry/rz` → `worldShipRotationX/Y/Z`) + commentaire FRAME CONVENTION en en-tête (sans « Local » = monde, avec « Local » = vaisseau) + commentaires Step 1-4 au-dessus des blocs. Lock anti-inversion appliqué sur les 6 axes (`lockInverseSpeedAxisX/Y/Z` + `lockInverseSpinAxisX/Y/Z` dans `ShipSheet`, init 0 dans `PlayerShip`) : `shipLocalVelocityX/Y/Z` calculé en Step 3.5 (velocity projetée sur les axes du vaisseau), détection `poussée × vitesse < 0` → lock = 1, clamp à 0 tant que la touche est maintenue, reset quand les 2 touches de l'axe sont relâchées. VISION.md + ARCHITECTURE.md synchronisés (règle 8, ajout daté du 19 nov. 2026). Vérifié : `tsc --noEmit` propre hors démo, `GET /play` → 200. Playtest Thierry : **ça marche** (arrêt à 0 maintenu ; relâcher + réappuyer pour repartir dans l'autre sens).
+
+**Appris / incidents** : la confusion sur les repères venait d'une convention implicite — désormais écrite dans le code (les noms disent le frame). Le lock, d'abord jugé trop complexe, a été compris une fois nommé et découpé en étapes lisibles. **Idée notée pour plus tard (pas pour ce soir, décision Thierry)** : le lock fait un peu « magique » — l'arrêt à 0 est un clamp instantané. Il faudrait que la décélération jusqu'à 0 (ou l'accélération jusqu'à 0) se fasse **progressivement**, le moteur devenant de moins en moins puissant près de 0 en respectant les capacités du vaisseau (ex. poussée réduite quand |vitesse| < seuil) — mais ça complique, à discuter avant d'implémenter.
+
+**Prochaine étape** : commit + push par Thierry (5 fichiers code + VISION.md + ARCHITECTURE.md + ce journal). Ensuite au choix : affiner le lock vers une décélération progressive (idée ci-dessus), HUD carte des touches, props/collisions pour l'acte 0.
+
+**Règle du projet** : une session = une victoire.
