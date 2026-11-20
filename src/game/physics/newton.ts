@@ -74,7 +74,7 @@ export function updateShips(dt: number): void {
     const flagOppositeForceDetectedZ = shipLocalThrustZ * shipLocalVelocityZ < 0;
 
     // Per-axis inverse-speed lock: if the demanded thrust opposes the current speed on an axis,
-    // lock it — the axis stops at 0 and never reverses while held. Both keys of the axis
+    // lock it — the axis brakes progressively to 0, never reverses while held. Both keys of the axis
     // released = unlock; from a full stop, one press goes directly.
     if (ship.lockInverseSpeedAxisX === 0 && flagOppositeForceDetectedX) ship.lockInverseSpeedAxisX = 1;
     if (ship.lockInverseSpeedAxisY === 0 && flagOppositeForceDetectedY) ship.lockInverseSpeedAxisY = 1;
@@ -83,25 +83,29 @@ export function updateShips(dt: number): void {
     if (ship.intent.liftUp === 0 && ship.intent.liftDown === 0) ship.lockInverseSpeedAxisY = 0;
     if (ship.intent.thrust === 0 && ship.intent.brake === 0) ship.lockInverseSpeedAxisZ = 0;
     
-    // Locked axes FIRST: clamp their velocity component to 0 (stop at 0, never reverse).
-    // shipLocalVelocityX/Y/Z (Step 3.5) is exactly the current velocity component along that ship axis.
+    // Locked axes FIRST: progressive brake toward 0 on that axis (stop at 0, never reverse).
+    // shipLocalVelocityX/Y/Z (Step 3.5) is the current speed component along that ship axis.
+    // dv = speed removed on that axis this frame (at most brakePower*dt, floored at 0).
     if (ship.lockInverseSpeedAxisX === 1) {
-      ship.velocity.x -= worldRightX * shipLocalVelocityX;
-      ship.velocity.y -= worldRightY * shipLocalVelocityX;
-      ship.velocity.z -= worldRightZ * shipLocalVelocityX;
+      const dv = -Math.sign(shipLocalVelocityX) * Math.min(Math.abs(shipLocalVelocityX), ship.brakePower * dt);
+      ship.velocity.x += worldRightX * dv;
+      ship.velocity.y += worldRightY * dv;
+      ship.velocity.z += worldRightZ * dv;
     }
     if (ship.lockInverseSpeedAxisY === 1) {
-      ship.velocity.x -= worldUpX * shipLocalVelocityY;
-      ship.velocity.y -= worldUpY * shipLocalVelocityY;
-      ship.velocity.z -= worldUpZ * shipLocalVelocityY;
+      const dv = -Math.sign(shipLocalVelocityY) * Math.min(Math.abs(shipLocalVelocityY), ship.brakePower * dt);
+      ship.velocity.x += worldUpX * dv;
+      ship.velocity.y += worldUpY * dv;
+      ship.velocity.z += worldUpZ * dv;
     }
     if (ship.lockInverseSpeedAxisZ === 1) {
-      ship.velocity.x -= worldForwardX * shipLocalVelocityZ;
-      ship.velocity.y -= worldForwardY * shipLocalVelocityZ;
-      ship.velocity.z -= worldForwardZ * shipLocalVelocityZ;
+      const dv = -Math.sign(shipLocalVelocityZ) * Math.min(Math.abs(shipLocalVelocityZ), ship.brakePower * dt);
+      ship.velocity.x += worldForwardX * dv;
+      ship.velocity.y += worldForwardY * dv;
+      ship.velocity.z += worldForwardZ * dv;
     }
 
-    // Effective thrust: 0 on a locked axis (its speed was just clamped to 0) — no add-then-remove.
+    // Effective thrust: 0 on a locked axis (the brake above already decelerates it) — no thrust against the brake.
     const appliedThrustX = ship.lockInverseSpeedAxisX === 1 ? 0 : shipLocalThrustX;
     const appliedThrustY = ship.lockInverseSpeedAxisY === 1 ? 0 : shipLocalThrustY;
     const appliedThrustZ = ship.lockInverseSpeedAxisZ === 1 ? 0 : shipLocalThrustZ;

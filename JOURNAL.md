@@ -493,3 +493,25 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : commit + push par Thierry (newton.ts + ce journal). Ensuite au choix : même restructuration côté rotation (les 3 lignes spin sont déjà claires), verrous en `boolean`, lock progressif, HUD.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-20 — Session 17 (suite 2) : lock translation en décélération progressive (demande explicite Thierry)
+
+**Fait** : `newton.ts` — le clamp instantané des axes verrouillés (translation) est remplacé par un freinage progressif : `dv = -sign(shipLocalVelocity) * min(|shipLocalVelocity|, brakePower*dt)`, réinjecté le long de l'axe du vaisseau → l'axe décélère jusqu'à 0 sans jamais s'inverser tant que la touche est maintenue. `appliedThrustX/Y/Z` (0 si verrouillé) conservé : pas de poussée contre le frein. Rotation : clamp à 0 conservé (inchangé). `ARCHITECTURE.md` (2 passages) + `VISION.md` synchronisés (règle 8, ajouts datés du 20 nov. 2026). Vérifié : `tsc --noEmit` propre hors démo.
+
+**Appris / incidents** : l'idée « décélération progressive au lieu du clamp magique » était notée « pour plus tard » depuis le 19 nov. — Thierry l'a demandée explicitement. Côté lecture : `dv` nommé + commentaire = le frein se comprend sans refaire le calcul.
+
+**Prochaine étape** : commit + push par Thierry (newton.ts + ARCHITECTURE.md + VISION.md + ce journal), playtest sur /play (freinage doux ressenti). Ensuite au choix : même traitement progressif côté rotation, verrous en `boolean`, HUD.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-20 — Session 17 (suite 3) : modif demandée pour demain — débrayage automatique du lock à l'arrêt
+
+**À faire (demande Thierry, 20 nov. 2026)** : actuellement, quand on pousse à contre-courant, l'axe freine jusqu'à 0 puis **reste bloqué** : il faut relâcher + réappuyer pour repartir dans l'autre sens. Comportement voulu : le lock se **débraye tout seul dès que la vitesse de l'axe atteint 0** — comme ça, une touche maintenue (appuyée « avant » l'arrêt) relance directement dans le nouveau sens, sans re-appui. Implémentation pressentie : **facile, ~2 lignes par axe** dans `newton.ts` — dans le bloc de freinage, si la vitesse restante est 0 → `lockInverseSpeedAxisX = 0` (idem Y/Z ; à décider pour la rotation). L'anti-inversion reste garanti : on ne passe jamais sous 0 tant que le lock est actif.
+
+**Prochaine étape** : commit + push par Thierry (session 17 complète). Demain : implémenter le débrayage auto, `tsc --noEmit`, playtest sur `/play`.
+
+**Règle du projet** : une session = une victoire.
