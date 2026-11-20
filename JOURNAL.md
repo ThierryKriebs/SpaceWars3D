@@ -469,3 +469,27 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : commit + push par Thierry (5 fichiers code + VISION.md + ARCHITECTURE.md + ce journal). Ensuite au choix : affiner le lock vers une décélération progressive (idée ci-dessus), HUD carte des touches, props/collisions pour l'acte 0.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-20 — Session 17 : nommage parlant des booléens de détection du lock anti-inversion
+
+**Fait** : `newton.ts` — le calcul `poussée × vitesse < 0` est désormais porté par 6 booléens nommés : `flagOppositeForceDetectedX/Y/Z` (translation) et `flagOppositeRotationDetectedX/Y/Z` (rotation) ; les 6 lignes de lock les utilisent (`if (ship.lockInverseSpeedAxisX === 0 && flagOppositeForceDetectedX) …`). Aucun comportement changé. Vérifié : `tsc --noEmit` propre hors démo Terre2065 (préexistant).
+
+**Appris / incidents** : la lisibilité venait du calcul nu (`a * b < 0`) restait opaque — un nom de flag qui dit ce qui est détecté règle le problème. Noms choisis par Thierry après plusieurs propositions (évité : 9 variables renommées en `shipWorld*`, refactor en 3 vecteurs, `flagOppositeForceDetected` seul — refusés).
+
+**Prochaine étape** : commit + push par Thierry. Ensuite au choix : verrous en `boolean` (`true/false` au lieu de `1/0`), affiner le lock vers une décélération progressive, HUD carte des touches.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-20 — Session 17 (suite) : restructuration lisible du lock translation (clamp AVANT Step 4)
+
+**Fait** : `newton.ts` — les 3 blocs de clamp des axes verrouillés passent AVANT Step 4 et réutilisent `shipLocalVelocityX/Y/Z` (Step 3.5) au lieu de recalculer une projection `v` ; nouveau `appliedThrustX/Y/Z` (0 si axe verrouillé) utilisé par Step 4. Fini le « ajouter puis retirer » : à la lecture, « axe verrouillé → vitesse à 0 → poussée seulement sur les axes libres ». Comportement identique frame par frame (clamp avalait de toute façon toute la composante, poussée comprise). Vérifié : `tsc --noEmit` propre hors démo.
+
+**Appris / incidents** : le code fonctionnait mais était illisible à l'œil (apply-then-remove) — Thierry a eu raison de pousser ; l'ordre clamp-first + poussée effective est à la fois plus clair et plus économe.
+
+**Prochaine étape** : commit + push par Thierry (newton.ts + ce journal). Ensuite au choix : même restructuration côté rotation (les 3 lignes spin sont déjà claires), verrous en `boolean`, lock progressif, HUD.
+
+**Règle du projet** : une session = une victoire.
