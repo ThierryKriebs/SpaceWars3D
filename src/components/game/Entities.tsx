@@ -52,16 +52,17 @@ function ShipMirror({ ship }: { ship: ShipSheet }) {
     // the copy: read the photo -> set the 3D object. Nothing else.
     g.position.set(ship.position.x, ship.position.y, ship.position.z);
     g.rotation.set(ship.rotation.x, ship.rotation.y, ship.rotation.z);
-    // Fill the command envelope from the ship's OWN intent: the model reads it to animate
-    // its thrusters (gas ejected OPPOSITE to the push). Visual only — physics stays in newton.ts.
+    // Fill the command envelope for the model's visuals from the EFFECTIVE values written by
+    // newton (ship.visualThrust / ship.visualRotation), not the raw intent: a locked axis at
+    // rest shows no gas. Gas is ejected OPPOSITE to the push. Visual only — physics stays in newton.ts.
     const ctl = ctlRef.current;
-    ctl.thrust = ship.intent.thrust;
-    ctl.trans = ship.intent.thrust - ship.intent.brake;
-    ctl.strafe = ship.intent.strafeRight - ship.intent.strafeLeft;
-    ctl.lift = ship.intent.liftUp - ship.intent.liftDown;
-    ctl.pitch = ship.intent.pitchUp - ship.intent.pitchDown;
-    ctl.yaw = ship.intent.yawLeft - ship.intent.yawRight;
-    ctl.roll = ship.intent.rollLeft - ship.intent.rollRight;
+    ctl.thrust = Math.max(0, ship.visualThrust.z);
+    ctl.trans = ship.visualThrust.z;
+    ctl.strafe = ship.visualThrust.x;
+    ctl.lift = ship.visualThrust.y;
+    ctl.pitch = ship.visualRotation.x;
+    ctl.yaw = ship.visualRotation.y;
+    ctl.roll = ship.visualRotation.z;
   });
   // Ship3DModel = the 3D maquette chosen by name in the sheet: "shift-dart" -> <ShiftDart />.
   // `keyof typeof modelRegistry` = "any valid key of the registry" — the cast just

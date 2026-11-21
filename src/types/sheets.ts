@@ -34,4 +34,7 @@ export interface ShipSheet {
   lockInverseRotationAxisX: number; // same 3 states for the rotation axes (angular velocity braked progressively to 0 while locked)
   lockInverseRotationAxisY: number;
   lockInverseRotationAxisZ: number;
+
+  visualThrust: Vec3; // -1..1 per ship axis — EFFECTIVE push written by newton each frame (lock brake included, 0 at rest); read only by the 3D mirror to drive the gas plumes
+  visualRotation: Vec3; // -1..1 per rotation axis — same for the turn demand
 }

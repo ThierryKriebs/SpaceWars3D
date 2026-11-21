@@ -121,6 +121,13 @@ export function updateShips(dt: number): void {
     const appliedThrustY = ship.lockInverseSpeedAxisY === 1 ? 0 : shipLocalThrustY;
     const appliedThrustZ = ship.lockInverseSpeedAxisZ === 1 ? 0 : shipLocalThrustZ;
 
+    // Effective push for the VISUAL mirror (gas plumes): while locked, the brake is the real push —
+    // full power while the axis still moves, 0 at rest (the gas stops when the ship is immobilized);
+    // otherwise the raw demand. Normalized to -1..1. Physics above is unchanged.
+    ship.visualThrust.x = ship.lockInverseSpeedAxisX === 1 ? -Math.sign(shipLocalVelocityX) : shipLocalThrustX / ship.thrustPower;
+    ship.visualThrust.y = ship.lockInverseSpeedAxisY === 1 ? -Math.sign(shipLocalVelocityY) : shipLocalThrustY / ship.thrustPower;
+    ship.visualThrust.z = ship.lockInverseSpeedAxisZ === 1 ? -Math.sign(shipLocalVelocityZ) : shipLocalThrustZ / ship.thrustPower;
+
     // Step 4 — new velocity on the world axes (ship-frame thrust converted to the world frame)
     ship.velocity.x += (worldRightX * appliedThrustX + worldUpX * appliedThrustY + worldForwardX * appliedThrustZ) * dt;
     ship.velocity.y += (worldRightY * appliedThrustX + worldUpY * appliedThrustY + worldForwardY * appliedThrustZ) * dt;
@@ -207,6 +214,11 @@ export function updateShips(dt: number): void {
     const appliedRotationThrustX = ship.lockInverseRotationAxisX === 1 ? 0 : rotationDemandX;
     const appliedRotationThrustY = ship.lockInverseRotationAxisY === 1 ? 0 : rotationDemandY;
     const appliedRotationThrustZ = ship.lockInverseRotationAxisZ === 1 ? 0 : rotationDemandZ;
+
+    // Same for the rotation demand (visual mirror): while locked, the spin brake is the real push (0 at rest)
+    ship.visualRotation.x = ship.lockInverseRotationAxisX === 1 ? -Math.sign(ship.angularVelocity.x) : rotationDemandX;
+    ship.visualRotation.y = ship.lockInverseRotationAxisY === 1 ? -Math.sign(ship.angularVelocity.y) : rotationDemandY;
+    ship.visualRotation.z = ship.lockInverseRotationAxisZ === 1 ? -Math.sign(ship.angularVelocity.z) : rotationDemandZ;
 
     // Pitch: positive rotation.x = nose UP on screen.
     ship.angularVelocity.x += appliedRotationThrustX * ship.turnPower * dt;

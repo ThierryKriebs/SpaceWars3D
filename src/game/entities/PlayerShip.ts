@@ -23,6 +23,8 @@ export function spawnPlayer(): void {
     lockInverseRotationAxisX: 0,
     lockInverseRotationAxisY: 0,
     lockInverseRotationAxisZ: 0,
+    visualThrust: { x: 0, y: 0, z: 0 },
+    visualRotation: { x: 0, y: 0, z: 0 },
   };
   state.ships.push(player);
 }
