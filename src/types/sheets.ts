@@ -31,7 +31,7 @@ export interface ShipSheet {
   lockInverseSpeedAxisX: number; // 3 states: 0 = free/armed, 1 = locked (brakes to 0, held there while the key stays down, never reverses), 2 = disengaged by release+re-press (double-click) until the speed changes sign
   lockInverseSpeedAxisY: number;
   lockInverseSpeedAxisZ: number;
-  lockInverseSpinAxisX: number; // same 3 states for the rotation axes (angular velocity clamped at 0 while locked)
-  lockInverseSpinAxisY: number;
-  lockInverseSpinAxisZ: number;
+  lockInverseRotationAxisX: number; // same 3 states for the rotation axes (angular velocity braked progressively to 0 while locked)
+  lockInverseRotationAxisY: number;
+  lockInverseRotationAxisZ: number;
 }

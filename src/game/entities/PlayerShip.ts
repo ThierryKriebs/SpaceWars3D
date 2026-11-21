@@ -20,9 +20,9 @@ export function spawnPlayer(): void {
     lockInverseSpeedAxisX: 0,
     lockInverseSpeedAxisY: 0,
     lockInverseSpeedAxisZ: 0,
-    lockInverseSpinAxisX: 0,
-    lockInverseSpinAxisY: 0,
-    lockInverseSpinAxisZ: 0,
+    lockInverseRotationAxisX: 0,
+    lockInverseRotationAxisY: 0,
+    lockInverseRotationAxisZ: 0,
   };
   state.ships.push(player);
 }

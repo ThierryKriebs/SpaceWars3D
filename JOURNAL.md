@@ -539,3 +539,51 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : playtest des scénarios 1+2 sur `/play`, puis commit + push par Thierry (newton.ts + sheets.ts + VISION.md + ARCHITECTURE.md + ce journal).
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 2) : `appliedRotationThrust` — la section rotation devient symétrique de la translation
+
+**Fait** : `newton.ts` — ajout du calcul manquant côté rotation (demande Thierry) : `spinDemandX/Y/Z` (demande brute par axe), `appliedRotationThrustX/Y/Z = lock===1 ? 0 : spinDemand` (nom choisi par Thierry), clamp des axes verrouillés déplacé AVANT l'intégration (ordre « frein d'abord, poussée effective ensuite », comme en translation). Comportement inchangé, prouvé par script : 105 cas (vitesse × demande × lock 0/1/2), écart max old vs new = 0. Vérifié : `tsc --noEmit` propre hors démo, `GET /play` → 200, chunk servi contient `appliedRotationThrustX`. Le frein de rotation reste un clamp instantané (décision du 20 nov.) — le rendre progressif reste une proposition ouverte, non demandée.
+
+**Appris / incidents** : rien de cassé. Leçon : déplacer le clamp avant l'intégration ne change rien (le clamp avalait de toute façon la composante) — la symétrie de lecture est gratuite.
+
+**Prochaine étape** : playtest sur `/play` (rien ne doit avoir changé en jeu), puis commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 3) : renommage spinDemand → rotationDemand (demande Thierry)
+
+**Fait** : `newton.ts` — `spinDemandX/Y/Z` renommé en `rotationDemandX/Y/Z` (13 occurrences, replace_all), commentaire compris. Pur renommage, zéro changement de comportement. Vérifié : plus aucun `spinDemand` dans `src/`, `tsc --noEmit` propre hors démo, `GET /play` → 200, chunk servi contient `rotationDemandX`.
+
+**Appris / incidents** : rien de cassé.
+
+**Prochaine étape** : commit + push par Thierry (tout le chantier session 18 : newton.ts, sheets.ts, VISION.md, ARCHITECTURE.md, JOURNAL.md), playtest des scénarios 1+2.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 4) : frein du lock en rotation rendu progressif (demande Thierry)
+
+**Fait** : `newton.ts` — le clamp instantané des axes de spin verrouillés est remplacé par un freinage progressif `dw = -sign(w) * min(|w|, turnPower*dt)` sur chacun des 3 axes (même pattern que le `dv` de translation ; `turnPower` comme puissance de freinage du spin, aucun nouveau champ). `appliedRotationThrust` reste à 0 tant que lock = 1. VISION.md:10 + ARCHITECTURE.md:587/1120 synchronisés (règle 8, 21 nov. 2026). Vérifié : script de simulation — lock=1 depuis le spin max (1.5 rad/s) : atteint exactement 0 en 30 frames (0,5 s), jamais négatif (pas d'inversion tant que la touche est maintenue) ; lock=2 : le spin franchit 0 (inversion libre). `tsc --noEmit` propre hors démo, `GET /play` → 200, chunk servi conforme.
+
+**Appris / incidents** : rien de cassé. Le clamp instantané en rotation (décision du 20 nov.) est donc remplacée le jour même par le freinage progressif — décision Thierry du 21 nov.
+
+**Prochaine étape** : playtest sur `/play` (rotation inversée = décélération douce jusqu'à 0, arrêt maintenu ; double-clic = re-spin libre), puis commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 5) : renommage lockInverseSpinAxis → lockInverseRotationAxis (demande Thierry)
+
+**Fait** : `lockInverseSpinAxisX/Y/Z` renommé en `lockInverseRotationAxisX/Y/Z` partout (23 occurrences : newton.ts ×15, PlayerShip.ts ×3, sheets.ts ×3, ARCHITECTURE.md ×2). Commentaire de sheets.ts corrigé au passage (règle 8) : « clamped at 0 » → « braked progressively to 0 » depuis le suite 4. Pur renommage. Vérifié : plus aucun `lockInverseSpin` dans src/ ni les docs, `tsc --noEmit` propre hors démo, `GET /play` → 200, chunk servi contient `lockInverseRotationAxisX`.
+
+**Appris / incidents** : rien de cassé. Le typage strict a listé toutes les occurrences à la compilation — le renommage est resté sûr.
+
+**Prochaine étape** : commit + push par Thierry (chantier session 18 complet), playtest des scénarios 1+2 sur `/play`.
+
+**Règle du projet** : une session = une victoire.

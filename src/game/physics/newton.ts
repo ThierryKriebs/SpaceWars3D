@@ -157,45 +157,74 @@ export function updateShips(dt: number): void {
     ship.position.y += ship.velocity.y * dt;
     ship.position.z += ship.velocity.z * dt;
 
+
+    
     // Rotation: same newtonian law on the angular axes — the intent accelerates
     // angularVelocity, capped at maxTurnRate; released, the ship keeps spinning.
     // Per-axis inverse-spin lock: same 3 states as the translation lock, but the rotation angles
     // are already world-frame, so angularVelocity needs no projection.
+    // rotationDemand = the demanded turn on this axis this frame (difference of the two intent keys)
+    const rotationDemandX = ship.intent.pitchUp - ship.intent.pitchDown;
+    const rotationDemandY = ship.intent.yawLeft - ship.intent.yawRight;
+    const rotationDemandZ = ship.intent.rollLeft - ship.intent.rollRight;
+
     // true = the demanded turn on this axis fights the current spin (opposite signs)
-    const flagOppositeRotationDetectedX = (ship.intent.pitchUp - ship.intent.pitchDown) * ship.angularVelocity.x < 0;
-    const flagOppositeRotationDetectedY = (ship.intent.yawLeft - ship.intent.yawRight) * ship.angularVelocity.y < 0;
-    const flagOppositeRotationDetectedZ = (ship.intent.rollLeft - ship.intent.rollRight) * ship.angularVelocity.z < 0;
-    if (ship.lockInverseSpinAxisX === 0 && flagOppositeRotationDetectedX) ship.lockInverseSpinAxisX = 1;
-    if (ship.lockInverseSpinAxisY === 0 && flagOppositeRotationDetectedY) ship.lockInverseSpinAxisY = 1;
-    if (ship.lockInverseSpinAxisZ === 0 && flagOppositeRotationDetectedZ) ship.lockInverseSpinAxisZ = 1;
+    const flagOppositeRotationDetectedX = rotationDemandX * ship.angularVelocity.x < 0;
+    const flagOppositeRotationDetectedY = rotationDemandY * ship.angularVelocity.y < 0;
+    const flagOppositeRotationDetectedZ = rotationDemandZ * ship.angularVelocity.z < 0;
+
+    if (ship.lockInverseRotationAxisX === 0 && flagOppositeRotationDetectedX) ship.lockInverseRotationAxisX = 1;
+    if (ship.lockInverseRotationAxisY === 0 && flagOppositeRotationDetectedY) ship.lockInverseRotationAxisY = 1;
+    if (ship.lockInverseRotationAxisZ === 0 && flagOppositeRotationDetectedZ) ship.lockInverseRotationAxisZ = 1;
+
     // Both keys of the axis released while locked → 2 (double-click disengages the lock)
-    if (ship.intent.pitchUp === 0 && ship.intent.pitchDown === 0 && ship.lockInverseSpinAxisX === 1) ship.lockInverseSpinAxisX = 2;
-    if (ship.intent.yawLeft === 0 && ship.intent.yawRight === 0 && ship.lockInverseSpinAxisY === 1) ship.lockInverseSpinAxisY = 2;
-    if (ship.intent.rollLeft === 0 && ship.intent.rollRight === 0 && ship.lockInverseSpinAxisZ === 1) ship.lockInverseSpinAxisZ = 2;
+    if (ship.intent.pitchUp === 0 && ship.intent.pitchDown === 0 && ship.lockInverseRotationAxisX === 1) ship.lockInverseRotationAxisX = 2;
+    if (ship.intent.yawLeft === 0 && ship.intent.yawRight === 0 && ship.lockInverseRotationAxisY === 1) ship.lockInverseRotationAxisY = 2;
+    if (ship.intent.rollLeft === 0 && ship.intent.rollRight === 0 && ship.lockInverseRotationAxisZ === 1) ship.lockInverseRotationAxisZ = 2;
+
     // Re-arm (2 → 0) once a pressed turn no longer fights the current spin (the spin changed sign)
-    if (ship.lockInverseSpinAxisX === 2 && !flagOppositeRotationDetectedX && (ship.intent.pitchUp - ship.intent.pitchDown) !== 0) ship.lockInverseSpinAxisX = 0;
-    if (ship.lockInverseSpinAxisY === 2 && !flagOppositeRotationDetectedY && (ship.intent.yawLeft - ship.intent.yawRight) !== 0) ship.lockInverseSpinAxisY = 0;
-    if (ship.lockInverseSpinAxisZ === 2 && !flagOppositeRotationDetectedZ && (ship.intent.rollLeft - ship.intent.rollRight) !== 0) ship.lockInverseSpinAxisZ = 0;
+    if (ship.lockInverseRotationAxisX === 2 && !flagOppositeRotationDetectedX && rotationDemandX !== 0) ship.lockInverseRotationAxisX = 0;
+    if (ship.lockInverseRotationAxisY === 2 && !flagOppositeRotationDetectedY && rotationDemandY !== 0) ship.lockInverseRotationAxisY = 0;
+    if (ship.lockInverseRotationAxisZ === 2 && !flagOppositeRotationDetectedZ && rotationDemandZ !== 0) ship.lockInverseRotationAxisZ = 0;
+
+    // Locked spin axes FIRST: progressive brake toward 0 on that axis (stop at 0, never reverse).
+    // dw = spin removed on that axis this frame (at most turnPower*dt, floored at 0) — same pattern as the
+    // translation dv, with turnPower as the spin brake power (the opposite key pushes at turnPower).
+    if (ship.lockInverseRotationAxisX === 1) {
+      const dw = -Math.sign(ship.angularVelocity.x) * Math.min(Math.abs(ship.angularVelocity.x), ship.turnPower * dt);
+      ship.angularVelocity.x += dw;
+    }
+    if (ship.lockInverseRotationAxisY === 1) {
+      const dw = -Math.sign(ship.angularVelocity.y) * Math.min(Math.abs(ship.angularVelocity.y), ship.turnPower * dt);
+      ship.angularVelocity.y += dw;
+    }
+    if (ship.lockInverseRotationAxisZ === 1) {
+      const dw = -Math.sign(ship.angularVelocity.z) * Math.min(Math.abs(ship.angularVelocity.z), ship.turnPower * dt);
+      ship.angularVelocity.z += dw;
+    }
+
+    // Effective rotation thrust: 0 while locked (1) — no turn against the brake; full demand when disengaged (2). Same pattern as appliedThrust.
+    const appliedRotationThrustX = ship.lockInverseRotationAxisX === 1 ? 0 : rotationDemandX;
+    const appliedRotationThrustY = ship.lockInverseRotationAxisY === 1 ? 0 : rotationDemandY;
+    const appliedRotationThrustZ = ship.lockInverseRotationAxisZ === 1 ? 0 : rotationDemandZ;
+
     // Pitch: positive rotation.x = nose UP on screen.
-    ship.angularVelocity.x += (ship.intent.pitchUp - ship.intent.pitchDown) * ship.turnPower * dt;
+    ship.angularVelocity.x += appliedRotationThrustX * ship.turnPower * dt;
     if (ship.angularVelocity.x > ship.maxTurnRate) ship.angularVelocity.x = ship.maxTurnRate;
     if (ship.angularVelocity.x < -ship.maxTurnRate) ship.angularVelocity.x = -ship.maxTurnRate;
+    
     // Yaw: positive rotation.y = nose LEFT on screen
     // (the nose -Z goes toward -X, which is screen-left for our camera).
-    ship.angularVelocity.y += (ship.intent.yawLeft - ship.intent.yawRight) * ship.turnPower * dt;
+    ship.angularVelocity.y += appliedRotationThrustY * ship.turnPower * dt;
     if (ship.angularVelocity.y > ship.maxTurnRate) ship.angularVelocity.y = ship.maxTurnRate;
     if (ship.angularVelocity.y < -ship.maxTurnRate) ship.angularVelocity.y = -ship.maxTurnRate;
+    
     // Roll: positive rotation.z lifts the right wing (+X) toward +Y = roll LEFT
     // from the pilot's view (sign to be confirmed in play, like the yaw was).
-    ship.angularVelocity.z += (ship.intent.rollLeft - ship.intent.rollRight) * ship.turnPower * dt;
+    ship.angularVelocity.z += appliedRotationThrustZ * ship.turnPower * dt;
     if (ship.angularVelocity.z > ship.maxTurnRate) ship.angularVelocity.z = ship.maxTurnRate;
     if (ship.angularVelocity.z < -ship.maxTurnRate) ship.angularVelocity.z = -ship.maxTurnRate;
 
-    // Locked spin axes: clamp the angular velocity to 0 on that axis (never reverses).
-    if (ship.lockInverseSpinAxisX === 1) ship.angularVelocity.x = 0;
-    if (ship.lockInverseSpinAxisY === 1) ship.angularVelocity.y = 0;
-    if (ship.lockInverseSpinAxisZ === 1) ship.angularVelocity.z = 0;
-   
     // Spin brake (Shift): decelerate the WHOLE angular velocity toward 0 —
     // same pattern as the Space stop, on the rotation axes.
     if (ship.intent.stopAllRotation > 0) {
