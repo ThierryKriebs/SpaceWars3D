@@ -1,5 +1,5 @@
-// The Falcon Mk2 mockup — pure visuals, no logic (models/ decide nothing).
-export function FalconMk2() {
+// The ShiftSimple mockup (the "pencil" placeholder ship) — pure visuals, no logic (models/ decide nothing).
+export function ShiftSimple() {
   return (
     <group>
       {/* nose cone, pointing forward (-z) */}

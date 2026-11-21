@@ -587,3 +587,27 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : commit + push par Thierry (chantier session 18 complet), playtest des scénarios 1+2 sur `/play`.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 6) : vaisseau « shift-dart » importé (modèle Mistral de tempVaisseaux/) + plumes RCS selon la poussée
+
+**Fait** : import des 2 fichiers de `tempVaisseaux/` (commentaires FR→EN, règle 5) : `models/ships/shared/ThrusterKit.tsx` (kit partagé : `ShipCommands` + canaux `strafe`/`lift` ajoutés, `<Thruster/>` plume de gaz, `<ShipEnv/>`) et `models/ships/ShiftDart.tsx` (coque, composant `Ship`→`ShiftDart`, table RCS complétée de 6 tuyères strafe/lift). Câblage : `Entities.tsx` — `modelRegistry` gagne `"shift-dart"`, tous les modèles reçoivent `ctlRef`, `ShipMirror` remplit `ctl.current` depuis `ship.intent` chaque frame (thrust/trans/strafe/lift/pitch/yaw/roll) ; `PlayerShip` → `model: "shift-dart"` ; `Scene.tsx` monte `<ShipEnv />`. ARCHITECTURE.md règle 3 complétée (sous-bullet daté 21 nov.). Vérifié : `tsc --noEmit` propre hors démo/layout/tempVaisseaux ; `GET /play` → 200 ; chunk servi contient `ShiftDart` + `strafe-L`. Effet attendu en jeu : pousser dans une direction → tuyères concernées crachent du gaz dans la direction opposée (plume proportionnelle à l'intensité).
+
+**Appris / incidents** : `tempVaisseaux/` fait échouer `tsc --noEmit` (module `./shared/ThrusterKit` introuvable depuis la racine) — dossier temporaire à supprimer une fois l'import validé (décision Thierry). Le crayon `FalconMk2` reste dans la bibliothèque, toujours sélectionnable via `model: "falcon-mk2"`.
+
+**Prochaine étape** : playtest sur `/play` (Z → flamme du moteur principal à l'arrière ; S → tuyères de frein avant ; Q/D et Maj/Ctrl → tuyères strafe/lift latérales/verticales ; rotations → paires RCS symétriques ; signe du roulis à valider) ; supprimer `tempVaisseaux/` si OK ; commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 7) : renommage FalconMk2 → ShiftSimple (demande Thierry)
+
+**Fait** : `models/ships/FalconMk2.tsx` → `models/ships/ShiftSimple.tsx` (git mv), composant `FalconMk2` → `ShiftSimple`, clé de registre `"falcon-mk2"` → `"shift-simple"` dans `Entities.tsx`, et toutes les références d'ARCHITECTURE.md (arbre, exemples JSON, prose) mises à jour (règle 8). Aucun vaisseau n'utilisait plus la clé (le joueur est en `"shift-dart"`). Vérifié : plus aucun « falcon » dans src/ ni les docs (hors historique JOURNAL), `tsc --noEmit` propre hors démo/tempVaisseaux, `GET /play` → 200, chunk servi contient `shift-simple`.
+
+**Appris / incidents** : rien de cassé.
+
+**Prochaine étape** : commit + push par Thierry (dont le renommage git mv), playtest des plumes RCS sur `/play`.
+
+**Règle du projet** : une session = une victoire.

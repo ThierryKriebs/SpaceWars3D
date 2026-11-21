@@ -4,7 +4,7 @@ import type { ShipSheet } from "@/types";
 // The actor: behavior only — it writes into the photo, never renders.
 export function spawnPlayer(): void {
   const player: ShipSheet = {
-    model: "falcon-mk2",
+    model: "shift-dart",
     position: { x: 0, y: 0, z: -10 }, // 10 units in front of the default camera
     velocity: { x: 0, y: 0, z: 0 }, // starts at rest — press W to accelerate
     rotation: { x: 0, y: 0, z: 0 },

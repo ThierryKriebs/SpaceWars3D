@@ -151,7 +151,7 @@ src/
 │                                 #   caméra qui suit — un miroir de plus, rien d'autre
 │       ├── models/              # BIBLIOTHÈQUE DE MAQUETTES (réutilisables, toute faction)
 │       │   ├── ships/           # chasseurs, croiseurs, vaisseaux capitaux
-│       │   │   ├── FalconMk2.tsx    # ex. : le chasseur du joueur au début
+│       │   │   ├── ShiftSimple.tsx    # ex. : le chasseur du joueur au début
 │       │   │   └── Interceptor.tsx  # ex. : le vaisseau emprunté à la mi-campagne
 │       │   ├── weapons/         # missiles, roquettes, torpilles (maquettes)
 │       │   │   ├── Rocket.tsx       # ex. : roquette ~40 cartouchées
@@ -249,10 +249,10 @@ src/
     "sun": { "preset": "distant", "direction": [0.4, 0.2, -0.9] }
   },
 
-  "player": { "model": "falcon-mk2", "position": [0, 0, 120], "weapons": ["plasma-cannon", "homing-missile"] },
+  "player": { "model": "shift-simple", "position": [0, 0, 120], "weapons": ["plasma-cannon", "homing-missile"] },
 
   "npcs": [
-    { "model": "falcon-mk2", "faction": "ally",
+    { "model": "shift-simple", "faction": "ally",
       "position": [30, 0, 100], "role": "wingman-follow", "callsign": "Vega-2" },
 
     { "model": "interceptor", "faction": "enemy",
@@ -274,8 +274,8 @@ src/
 ```
 
 À lire attentivement, tout s'y retrouve :
-- **Le joueur et l'ennemi partagent la même arme** (`plasma-cannon`) — même comportement, mêmes dégâts, l'équité jusqu'aux canons ; le missile guidé du Falcon est un réglage de SA fiche, pas un code différent (section `weapons/`).
-- **Le joueur ET l'allié portent le même modèle** (`falcon-mk2`) — la faction est une propriété, pas un dossier.
+- **Le joueur et l'ennemi partagent la même arme** (`plasma-cannon`) — même comportement, mêmes dégâts, l'équité jusqu'aux canons ; le missile guidé du ShiftSimple est un réglage de SA fiche, pas un code différent (section `weapons/`).
+- **Le joueur ET l'allié portent le même modèle** (`shift-simple`) — la faction est une propriété, pas un dossier.
 - **Les deux ennemis partagent le même modèle** (`interceptor`) et le même cerveau (`patrol-route`) avec des *rondes différentes* — code partagé, données différentes.
 - **Le conteneur est inerte… sauf celui qui porte un cerveau** (`turret-guard`) — même JSON, même chargeur.
 - **Un as serait le même JSON** avec un cerveau plus riche (ex. : `ace-duel` dans `levels/roles/`) et une fiche corsée — pas une espèce nouvelle : *chasseur = 1 coup, as = duel*.
@@ -580,7 +580,7 @@ L'ordre entre acteurs et gravity importe peu (additionner 2 + 3 ou 3 + 2, même 
 
 - **La poussée lit des intentions, pas un clavier** : `input.thrust` est une valeur de la photo — newton ne sait pas qu'un clavier existe (gamepad et VR ne le toucheront pas).
 - **L'inertie** : dans l'espace, rien ne freine — chaque battement applique `position += velocity × dt`, poussée ou pas. *Je relâche, je glisse pour toujours.* C'est ce qui fait du vol spatial un vol spatial, et non une voiture.
-- **Le plafond de vitesse** : sans lui, on finit à 40 000 km/h et le jeu devient injouable. On mesure la longueur du vecteur vitesse, on la rabat sur le plafond **en gardant la direction** — on ne punit pas le pilote en le déviant. `maxSpeed` est un réglage de la fiche (JSON) : le Falcon file, le cargo rampe — comportement en code, réglages en données.
+- **Le plafond de vitesse** : sans lui, on finit à 40 000 km/h et le jeu devient injouable. On mesure la longueur du vecteur vitesse, on la rabat sur le plafond **en gardant la direction** — on ne punit pas le pilote en le déviant. `maxSpeed` est un réglage de la fiche (JSON) : le ShiftSimple file, le cargo rampe — comportement en code, réglages en données.
 - **Les 6 degrés de liberté** : 3 axes de translation (poussée avant/arrière, dérive, montée) — le même plié répété trois fois ; 3 axes de rotation (tangage, lacet, roulis). Les intentions deviennent vitesse, la vitesse devient position.
 - **Le frein** : dans l'espace, freiner n'est pas lever le pied (pas de sol pour te freiner) — c'est une rétrofusée : `input.brake` décroît la vitesse axe par axe.
 - **Le boost** : PAS une nouvelle physique — les mêmes lignes avec d'autres réglages (`thrustPower × boostFactor`, plafond relevé). Les facteurs vivent dans le JSON : un vaisseau de course au boost monstrueux, un bombardier au boost ridicule — mêmes comportements, réglages différents. (Une jauge de boost avec carburant ? Discussion pour plus tard — si oui, un champ de plus dans la photo que newton décrémente.)
@@ -802,7 +802,7 @@ Pourquoi "plus tard" : aucune mission n'en a besoin avant d'avoir des choses AUT
 | cycle de vie ? | naît, agit, meurt | aucun — elle dort dans le catalogue | naît du tir, meurt à l'impact |
 | verdict | entité | **comportement** (`weapons/`) | **entité** (avec son modèle) |
 
-⚠️ **Le faux critère à ne jamais utiliser : "avoir un modèle 3D".** Un décor immobile *a* un modèle et n'est PAS une entité (pas de fiche, dessiné une fois). Un projectile est une entité avec fiche ET modèle. Une arme n'a ni fiche ni modèle à elle : ses canons *dessinés* appartiennent à la maquette du vaisseau, son effet *visible* à la maquette du projectile. **Le modèle est le costume d'une fiche, jamais sa carte d'identité.** Et le modèle ne "contient" pas l'arme au sens logique : changer la coque du Falcon pour un modèle neuf sans canons dessinés ne lui enlève pas son `plasma-cannon` — tant que sa fiche le référence. Le modèle est l'apparence, le comportement est ailleurs.
+⚠️ **Le faux critère à ne jamais utiliser : "avoir un modèle 3D".** Un décor immobile *a* un modèle et n'est PAS une entité (pas de fiche, dessiné une fois). Un projectile est une entité avec fiche ET modèle. Une arme n'a ni fiche ni modèle à elle : ses canons *dessinés* appartiennent à la maquette du vaisseau, son effet *visible* à la maquette du projectile. **Le modèle est le costume d'une fiche, jamais sa carte d'identité.** Et le modèle ne "contient" pas l'arme au sens logique : changer la coque du ShiftSimple pour un modèle neuf sans canons dessinés ne lui enlève pas son `plasma-cannon` — tant que sa fiche le référence. Le modèle est l'apparence, le comportement est ailleurs.
 
 **"Pourquoi pas dans `entities/` ?" — la question légitime, et sa réponse honnête.** Techniquement, RIEN ne l'empêche : TypeScript s'en fiche, la greffe marcherait pareil depuis un sous-dossier d'`entities/`. C'est une **discipline de métier** : `entities/` a un serment — *ici vivent les choses qui ont une fiche dans la photo* — et une arme n'a pas de fiche. Les armes sont le **troisième tiroir du même meuble** : la coque vit dans `entities/`, et autour d'elle les capacités qu'on lui visse — maquette (`models/`), rôle (`levels/roles/`), canon (`weapons/`). Aucune n'est une chose vivante ; toutes sont *montables*. Mélanger canon et coque dans le même dossier, et c'est la pente du fourre-tout : la question *"dans ce document, où est-ce que ça va ?"* perdrait sa réponse unique.
 
@@ -822,8 +822,8 @@ Les trois mauvaises réponses, pour mémoire :
 Un `NpcShip` sans cerveau dérive ; avec `patrol-route` il patrouille ; avec `turret-guard` il garde. Idem côté armes — et le libre-échange se lit dans les données :
 
 ```json
-// la fiche du Falcon Mk2 — deux armes montées, des références
-{ "model": "falcon-mk2", "weapons": ["plasma-cannon", "homing-missile"] }
+// la fiche du ShiftSimple — deux armes montées, des références
+{ "model": "shift-simple", "weapons": ["plasma-cannon", "homing-missile"] }
 
 // un chasseur de patrouille — MÊME comportement "plasma-cannon", réglages différents
 { "model": "interceptor", "weapons": ["plasma-cannon"] }
@@ -1105,7 +1105,8 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 
 1. **`app/` importe depuis `components/` et `game/` ; personne n'importe depuis `app/`.**
 2. **`components/game/` lit `game/`, jamais l'inverse** : `game/` ne connaît ni React, ni three.js — c'est son serment. Si tu croises un `import ... from "three"` dans `game/`, c'est un bug d'architecture.
-3. **Aucune logique dans une maquette, aucun visuel dans une entité** : `models/` ne décide rien, `entities/` n'affichent rien. Le lien entre les deux est une référence (`model: "falcon-mk2"`).
+3. **Aucune logique dans une maquette, aucun visuel dans une entité** : `models/` ne décide rien, `entities/` n'affichent rien. Le lien entre les deux est une référence (`model: "shift-simple"`).
+   - **Maquettes animées (tuyères, gaz)** : une maquette peut recevoir un prop `ctlRef` (enveloppe `ShipCommands` du kit partagé `models/ships/shared/ThrusterKit.tsx`), rempli chaque frame par le miroir (`Entities.tsx`) depuis `ship.intent` — la maquette anime alors son matériel (plume de gaz éjecté à l'OPPOSÉ de la poussée). La physique reste dans `newton.ts` ; le `ctlRef` est purement visuel. Ajouté le 21 nov. 2026 (Thierry) : vaisseau « shift-dart » (`models/ships/ShiftDart.tsx`, modèle Mistral importé de `tempVaisseaux/`), table RCS complétée de tuyères `strafe`/`lift` ; canaux `strafe`/`lift` ajoutés à `ShipCommands`.
 4. **Pas de dossier par niveau, pas de boucle par niveau** : un niveau = un JSON + éventuellement un cerveau de mission. Toute ressemblance entre deux niveaux = données partagées, jamais code copié.
 5. Un niveau qui a besoin de code custom = un champ `"script"` dans son JSON qui référence `game/missions/`.
 
