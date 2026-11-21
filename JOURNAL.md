@@ -683,3 +683,147 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : playtest visuel sur `/play` (cloches visibles, plumes centrées, Q/D → 2 plumes par flanc), commit + push par Thierry.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 14) : lift Y en 2×4 (8 tuyères) comme le strafe (sur « applique »)
+
+**Fait** : `ShiftDart.tsx` — les 4 tuyères lift (toutes à z=0.6) remplacées par **8** : `lift-{L,R}-{B,T}-{F,R}` (bas/haut × gauche/droite × avant z=0.0 / arrière z=1.1) → 4 en bas (gaz vers le bas quand on monte) + 4 en haut (gaz vers le haut quand on descend), symétriques en x et z → translation verticale pure, sans couple de tangage/roulis. Vérifié : `tsc` propre hors démo/tempVaisseaux, `GET /play` → 200, les 8 ids `lift-*` présents dans le chunk servi.
+
+**Appris / incidents** : rien de cassé. La table RCS fait maintenant 16 tuyères d'origine + 4 strafe + 8 lift = 28 RCS.
+
+**Prochaine étape** : playtest Maj/Ctrl sur `/play` (4 plumes en même temps, vaisseau qui monte/descend sans tourner), commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 15) : repositionnement des tuyères lift (sur « applique »)
+
+**Fait** : `ShiftDart.tsx` — les 8 tuyères lift remises à plat sur la coque : rangée avant z=0.1 (les anciennes z=0.6 déplacées à l'avant), rangée arrière z=1.0 (symétrique autour du centre z≈0.55) ; dessus y=0.23 / dessous y=-0.47 (collés au sommet/fond des réservoirs, miroirs par rapport au centre) ; x=±0.54 inchangé. Vérifié : `tsc` propre, `GET /play` → 200, chunk contient `lift-L-B-F", pos: [-0.54, -0.47, 0.1]`.
+
+**Appris / incidents** : rien de cassé. Règle visuelle retenue : poser chaque tuyère là où la coque est perpendiculaire au jet, et miroir haut/bas par rapport au centre du vaisseau.
+
+**Prochaine étape** : playtest Maj/Ctrl sur `/play` (tuyères bien sur la coque, 4 plumes simultanées), commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 16) : rangées strafe/lift centrées sur l'axe du vaisseau (z=0) — sur « applique »
+
+**Fait** : `ShiftDart.tsx` — seules les valeurs de z changent : strafe z 0.0/1.1 → **-0.4/+0.4**, lift z 0.1/1.0 → **-0.45/+0.45** (les deux paires de rangées sont maintenant symétriques autour de l'axe du vaisseau z=0, et non plus décalées vers l'arrière à z≈0.55). Commentaires mis à jour. Vérifié : `tsc` propre, `GET /play` → 200, source et chunk conformes (`[-1.62,-0.18,-0.4]`, `[-0.54,-0.47,-0.45]`).
+
+**Appris / incidents** : rien de cassé. Règle visuelle : une paire avant/arrière de tuyères doit être symétrique par rapport à l'axe longitudinal du vaisseau (z=0), pas par rapport au réservoir.
+
+**Prochaine étape** : playtest visuel + Q/D/Maj/Ctrl sur `/play`, commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 17) : incident — mauvais RCS déplacés, revert partiel (demande explicite Thierry)
+
+**Fait** : l'agent avait centré en z les deux familles (strafe ET lift) ; Thierry visait seulement les RCS de l'axe Y (lift 2×4). **Revert** des strafe à z = 0.0/1.1 (comme avant), les lift restent centrés à z = -0.45/+0.45. Vérifié : `tsc` propre, `GET /play` → 200, coordonnées conformes dans la source.
+
+**Appris / incidents** : quand Thierry dit « celles à l'avant/à l'arrière », préciser DE QUEL GROUPE de tuyères il parle avant d'éditer — ou mieux, il désigne, l'agent ne devine pas. Leçon retenue : scope = le groupe nommé (ici l'axe Y), pas « toutes les paires front/rear ».
+
+**Prochaine étape** : playtest visuel sur `/play` (lift centrés, strafe comme avant), commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 18) : lift recentrés à z = ±0.4 (ne dépassent plus la coque en -Z) — sur « applique »
+
+**Fait** : `ShiftDart.tsx` — les 8 tuyères lift passent de z = ±0.45 à **z = ±0.4** : toujours symétriques autour de l'axe du vaisseau (z = 0), mais la cloche (rayon 0.08) ne dépasse plus du cylindre des réservoirs (qui commence à z = -0.5) en -Z. Strafe inchangés (z = 0.0/1.1, revert suite 17). Commentaire corrigé. Vérifié : `tsc` propre, `GET /play` → 200, coordonnées conformes.
+
+**Appris / incidents** : rien de cassé. Marge de sécurité notée : une tuyère posée à z doit avoir |z| ≤ (début du cylindre + rayon de la cloche) pour ne pas dépasser de la coque.
+
+**Prochaine étape** : playtest Maj/Ctrl sur `/play` (tuyères centrées, plus rien qui dépasse en -Z), commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 19) : lift recentrés sur l'axe des réservoirs internes (z = 0.2 / 1.0) — sur « applique »
+
+**Fait** : `ShiftDart.tsx` — les 8 tuyères lift passent de z = ±0.4 à **z = 0.2 (avant) / 1.0 (arrière)**. Motif : les lift sont posées sur les réservoirs internes (`Tank`, centre z = 0.6, corps z = -0.39..1.59), pas sur le fuselage (centre z = -0.3) ; à z = ±0.4 la paire était décalée de 0.6 vers l'avant et la rangée avant tombait sur la base du cône. Pair centrée : (0.2+1.0)/2 = 0.6 = axe du réservoir, les deux rangées sur la partie droite du cylindre, rien ne dépasse. Commentaire corrigé. Vérifié : `tsc` propre, `GET /play` → 200, coordonnées conformes.
+
+**Appris / incidents** : « centré sur l'axe du vaisseau » se lit visuellement sur la pièce qui porte la tuyère (réservoir, pas fuselage octaédrique) — repère utile : les strafe sur réservoirs externes (centre z = 0.55) sont à z = 0.0/1.1.
+
+**Prochaine étape** : playtest visuel Maj/Ctrl sur `/play` (4 plumes dessus/dessous centrées sur les réservoirs), commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 20) : lift encore reculés vers l'arrière (z = 0.5 / 1.3) — sur « applique »
+
+**Fait** : `ShiftDart.tsx` — les 8 tuyères lift passent de z = 0.2/1.0 à **z = 0.5 (avant) / 1.3 (arrière)**, décalage +0.3 vers l'arrière (+Z) demandé visuellement par Thierry. Paire toujours symétrique (centre 0.9, aucun couple de tangage), les deux rangées restent sur le corps droit du réservoir interne (z -0.39..1.59 ; rangée arrière à 0.21 de la limite sûre 1.51 avant le cône arrière). Commentaire corrigé. Vérifié : `tsc` propre, `GET /play` → 200, coordonnées conformes.
+
+**Appris / incidents** : rien de cassé. Limite notée : recul max propre des lift = z 0.7 / 1.5 (cloche de rayon 0.08 contre le cône arrière à 1.59).
+
+**Prochaine étape** : playtest visuel Maj/Ctrl sur `/play` (plumes bien vers l'arrière des réservoirs), commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 21) : lift placés ENTRE les anneaux orange et noir des réservoirs (z = 0.3 / 0.9) — sur « applique »
+
+**Fait** : `ShiftDart.tsx` — les 8 tuyères lift passent de z = 0.5/1.3 à **z = 0.3 (avant) / 0.9 (arrière)**, pour être entre les deux anneaux du réservoir interne : anneau orange (ACCENT, local z -0.6) = monde z 0.06 ± 0.072 → finit à z ≈ 0.13 ; anneau noir (DARKMETAL, local z +0.6) = monde z 1.14 ± 0.04 → commence à z ≈ 1.10. Zone sûre avec la cloche (0.08) : 0.21..1.02 ; 0.3/0.9 sont dedans avec marge ≥ 0.17. Centre de paire = 0.6 = axe du réservoir : aucun couple de tangage. Commentaire corrigé. Vérifié : `tsc` propre, `GET /play` → 200, coordonnées conformes.
+
+**Appris / incidents** : rien de cassé. Les anneaux du `Tank` sont le repère visuel de placement des tuyères sur les réservoirs internes (zone peinte entre orange et noir).
+
+**Prochaine étape** : playtest visuel Maj/Ctrl sur `/play` (4 plumes entre les deux anneaux sur chaque réservoir), commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 22) : lift affinés — avant z = 0.4 (léger recul), arrière z = 1.0 (au plus près de l'anneau noir) — sur « applique au mieux »
+
+**Fait** : `ShiftDart.tsx` — les 8 tuyères lift passent de z = 0.3/0.9 à **z = 0.4 (avant, très légèrement reculé) / 1.0 (arrière, reculé au max : bord de cloche à 1.08, anneau noir à 1.10)**. Toujours entre les deux anneaux du réservoir interne. Centre de paire = 0.7 (léger désaxage vs axe réservoir 0.6 → couple de tangage négligeable en lift). Commentaire corrigé. Vérifié : `tsc` propre, `GET /play` → 200, coordonnées conformes.
+
+**Appris / incidents** : rien de cassé. Placement lift final visé : entre anneau orange (z 0.13) et anneau noir (z 1.10), arrière à 1.0.
+
+**Prochaine étape** : playtest visuel Maj/Ctrl sur `/play` (plumes bien entre les anneaux, arrière au ras du noir), commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 23) : lift arrière au dernier cran (z = 1.02) — placement FINAL — sur « applique »
+
+**Fait** : `ShiftDart.tsx` — les 4 tuyères `lift-*-R` passent de z = 1.0 à **z = 1.02** (dernier cran : bord de plaque à 1.10 = départ de l'anneau noir, safe max 1.0195). Avant inchangé à z = 0.4. Placement lift final : **avant z = 0.4, arrière z = 1.02**, entre les anneaux orange (0.13) et noir (1.10) des réservoirs internes. Commentaire corrigé. Vérifié : `tsc` propre, `GET /play` → 200, coordonnées conformes.
+
+**Appris / incidents** : rien de cassé. Placement acté par Thierry : « c'est bon ».
+
+**Prochaine étape** : commit + push par Thierry de tout le chantier session 18 (ShiftDart, ThrusterKit, newton, Entities, JOURNAL…).
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 24) : lift arrière z = 1.05 (mord l'anneau noir) — sur « applique »
+
+**Fait** : `ShiftDart.tsx` — les 4 tuyères `lift-*-R` passent de z = 1.02 à **z = 1.05** : la plaque (rayon 0.08, span 0.97..1.13) chevauche maintenant l'anneau noir (z 1.10..1.18) de 0.03, visible à l'écran (Thierry : « actuellement ça ne mord pas » à 1.02). Avant inchangé à z = 0.4. Commentaire corrigé. Vérifié : `tsc` propre, `GET /play` → 200, coordonnées conformes.
+
+**Appris / incidents** : rien de cassé. À z = 1.02 le bord de plaque (1.10) arrive pile au départ de l'anneau sans chevauchement visible.
+
+**Prochaine étape** : playtest visuel Maj/Ctrl sur `/play`, puis commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 25) : CLÔTURE — placement des lift acté (avant z = 0.4, arrière z = 1.05, mord l'anneau noir) — demandé par Thierry
+
+**Fait** : placement des 8 tuyères lift finalisé au fil des suites 19-24 (z = ±0.4 → 0.2/1.0 → 0.5/1.3 → 0.3/0.9 → 0.4/1.0 → 0.4/1.02 → **0.4/1.05**) : entre l'anneau orange (z 0.13) et l'anneau noir (z 1.10..1.18) des réservoirs internes, rangée arrière qui mord l'anneau noir de 0.03. `tsc` propre, `/play` → 200 à chaque étape. Rien d'autre modifié ce soir.
+
+**Appris / incidents** : rien de cassé. Le couple de placement qui marche : repérer la pièce qui porte la tuyère (réservoir interne, axe z = 0.6) et ses anneaux peints comme bornes visuelles. `tempVaisseaux/` toujours présent (fait échouer `tsc` hors filtre) — décision de suppression toujours en attente.
+
+**Prochaine étape** : demain — **dédoubler les RCS des réservoirs externes pour les rotations** (les `roll-*` actuels, 4 tuyères à x = ±1.3, z = 0.55 sur les pods externes, seront doublés pour plus de couple de roulis). Puis commit + push par Thierry du chantier session 18.
+
+**Règle du projet** : une session = une victoire.

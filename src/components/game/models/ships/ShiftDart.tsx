@@ -94,12 +94,20 @@ export const RCS_NOZZLES: RcsNozzle[] = [
   { id: "strafe-L-R", pos: [-1.62, -0.18, 1.1], exhaust: [-1, 0, 0], fires: { strafe: 1 } },
   { id: "strafe-R-F", pos: [1.62, -0.18, 0.0],  exhaust: [1, 0, 0],  fires: { strafe: -1 } },
   { id: "strafe-R-R", pos: [1.62, -0.18, 1.1],  exhaust: [1, 0, 0],  fires: { strafe: -1 } },
-  // ---- LIFT: bottom/top of the main tanks — vertical gas
-  //      (lift +1 = up = gas ejected downward from the belly nozzles)
-  { id: "lift-L-B", pos: [-0.54, -0.42, 0.6], exhaust: [0, -1, 0], fires: { lift: 1 } },
-  { id: "lift-R-B", pos: [0.54, -0.42, 0.6], exhaust: [0, -1, 0], fires: { lift: 1 } },
-  { id: "lift-L-T", pos: [-0.54, 0.45, 0.6], exhaust: [0, 1, 0], fires: { lift: -1 } },
-  { id: "lift-R-T", pos: [0.54, 0.45, 0.6], exhaust: [0, 1, 0], fires: { lift: -1 } },
+  // ---- LIFT: 2x4 on the inner tanks — front row (z 0.4) + rear row (z 1.05),
+  //      BOTH rows between the tank rings: orange ring ends at z 0.13, black ring
+  //      spans z 1.10..1.18. Rear row at 1.05: plate (radius 0.08, spans 0.97..1.13)
+  //      bites 0.03 into the black ring. x left/right
+  //      (symmetric: no roll torque), top/bottom glued to the tank hull (y 0.23 top
+  //      / -0.47 bottom). Vertical gas. (lift +1 = up = gas ejected downward)
+  { id: "lift-L-B-F", pos: [-0.54, -0.47, 0.4],  exhaust: [0, -1, 0], fires: { lift: 1 } },
+  { id: "lift-L-B-R", pos: [-0.54, -0.47, 1.05], exhaust: [0, -1, 0], fires: { lift: 1 } },
+  { id: "lift-R-B-F", pos: [0.54, -0.47, 0.4],   exhaust: [0, -1, 0], fires: { lift: 1 } },
+  { id: "lift-R-B-R", pos: [0.54, -0.47, 1.05],  exhaust: [0, -1, 0], fires: { lift: 1 } },
+  { id: "lift-L-T-F", pos: [-0.54, 0.23, 0.4],   exhaust: [0, 1, 0],  fires: { lift: -1 } },
+  { id: "lift-L-T-R", pos: [-0.54, 0.23, 1.05],  exhaust: [0, 1, 0],  fires: { lift: -1 } },
+  { id: "lift-R-T-F", pos: [0.54, 0.23, 0.4],    exhaust: [0, 1, 0],  fires: { lift: -1 } },
+  { id: "lift-R-T-R", pos: [0.54, 0.23, 1.05],   exhaust: [0, 1, 0],  fires: { lift: -1 } },
 ];
 
 /* ============================================================================
