@@ -108,7 +108,7 @@ export interface ThrusterHandle {
 export type ThrusterRegistry = Map<string, ThrusterHandle>;
 
 /* ============================================================================
-   THE NOZZLE — flush drilled plate + proportional plume.
+   THE NOZZLE — flush drilled plate + 3D bell (the thruster) + proportional plume.
    Nothing ship-specific: one position, one direction,
    one intensity. THE GAS IS BORN AT THE HOLE: the cone base stays glued
    to the plate as it grows — never inside the hull.
@@ -145,9 +145,9 @@ export function Thruster({
     if (!m) return;
     m.visible = f > 0.02;
     m.scale.set(0.5 + f * 0.6, 0.16 + f * 1.4, 0.5 + f * 0.6);
-    // THE GAS IS BORN AT THE HOLE: base glued to the plate (local y 0.012),
+    // THE GAS IS BORN AT THE BELL EXIT: base glued there (local y 0.08),
     // the tip is what grows — never inside the hull.
-    m.position.y = 0.012 + (0.16 + f * 1.4) / 2;
+    m.position.y = 0.08 + (0.16 + f * 1.4) / 2;
     (m.material as THREE.MeshBasicMaterial).opacity = Math.min(0.9, f * 0.95);
   });
 
@@ -163,9 +163,14 @@ export function Thruster({
         <cylinderGeometry args={[0.05, 0.05, 0.004, 12]} />
         <meshBasicMaterial color="#05070a" />
       </mesh>
-      {/* plume: length and opacity proportional to the thrust */}
-      <mesh ref={plumeRef} position={[0, 0.05, 0]} visible={false}>
-        <coneGeometry args={[0.055, 1, 8]} />
+      {/* the nozzle BELL: the 3D thruster around the hole (local +Y = exhaust direction, flared exit at y 0.08) */}
+      <mesh position={[0, 0.04, 0]}>
+        <cylinderGeometry args={[0.05, 0.078, 0.08, 12]} />
+        <meshStandardMaterial color="#1a2230" metalness={0.85} roughness={0.35} />
+      </mesh>
+      {/* plume: length and opacity proportional to the thrust, born at the bell exit */}
+      <mesh ref={plumeRef} position={[0, 0.08, 0]} visible={false}>
+        <coneGeometry args={[0.05, 1, 8]} />
         <meshBasicMaterial color="#8fd6ff" transparent opacity={0.8} blending={THREE.AdditiveBlending} depthWrite={false} />
       </mesh>
     </group>

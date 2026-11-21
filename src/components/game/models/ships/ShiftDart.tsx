@@ -86,10 +86,14 @@ export const RCS_NOZZLES: RcsNozzle[] = [
   { id: "roll-R-T", pos: [1.3, 0.067, 0.55], exhaust: [0, 1, 0], fires: { roll: -1 } },
   { id: "roll-L-T", pos: [-1.3, 0.067, 0.55], exhaust: [0, 1, 0], fires: { roll: 1 } },
   { id: "roll-L-B", pos: [-1.3, -0.427, 0.55], exhaust: [0, -1, 0], fires: { roll: -1 } },
-  // ---- STRAFE: flanks of the outer tanks — lateral gas, opposite force
+  // ---- STRAFE: front+rear pair on the CYLINDRICAL flank of the outer tanks (x = ±1.62,
+  //      where the hull is perpendicular to the jet) — lateral gas, opposite force.
+  //      Two nozzles per side, symmetric about the tank center (z 0.55): yaw torques cancel.
   //      (force on ship = -exhaust: strafe +1 = right = gas ejected to the left)
-  { id: "strafe-L", pos: [-1.3, -0.18, 0.55], exhaust: [-1, 0, 0], fires: { strafe: 1 } },
-  { id: "strafe-R", pos: [1.3, -0.18, 0.55], exhaust: [1, 0, 0], fires: { strafe: -1 } },
+  { id: "strafe-L-F", pos: [-1.62, -0.18, 0.0], exhaust: [-1, 0, 0], fires: { strafe: 1 } },
+  { id: "strafe-L-R", pos: [-1.62, -0.18, 1.1], exhaust: [-1, 0, 0], fires: { strafe: 1 } },
+  { id: "strafe-R-F", pos: [1.62, -0.18, 0.0],  exhaust: [1, 0, 0],  fires: { strafe: -1 } },
+  { id: "strafe-R-R", pos: [1.62, -0.18, 1.1],  exhaust: [1, 0, 0],  fires: { strafe: -1 } },
   // ---- LIFT: bottom/top of the main tanks — vertical gas
   //      (lift +1 = up = gas ejected downward from the belly nozzles)
   { id: "lift-L-B", pos: [-0.54, -0.42, 0.6], exhaust: [0, -1, 0], fires: { lift: 1 } },

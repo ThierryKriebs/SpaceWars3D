@@ -659,3 +659,27 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : playtest des 6 axes sur `/play`, commit + push par Thierry.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 12) : strafe X — 2 tuyères par flanc (avant + arrière) au lieu d'une seule
+
+**Fait** : `ShiftDart.tsx`, table RCS (sur « applique » explicite) : `strafe-L`/`strafe-R` remplacées par 4 tuyères `strafe-L-F`, `strafe-L-R`, `strafe-R-F`, `strafe-R-R` (z = -0.65 et 1.75, coiffes avant/arrière des réservoirs extérieurs, symétriques autour du centre de masse). Raison physique : une seule tuyère par flanc créait un couple de lacet en strafe ; la paire avant+arrière annule le couple → translation latérale pure. Vérifié : `tsc` propre hors démo/tempVaisseaux, `GET /play` → 200, chunk contient `strafe-L-F`/`strafe-R-R`. Note : le lift (4 tuyères toutes à z = 0.6) a le même défaut potentiel — à traiter pareil si demandé.
+
+**Appris / incidents** : rien de cassé.
+
+**Prochaine étape** : playtest Q/D sur `/play` (4 plumes, pas de lacet parasite), commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 13) : vraie tuyère 3D (cloche) sur chaque RCS + repositionnement des strafe (sur « applique »)
+
+**Fait** : (1) `ThrusterKit.tsx` `<Thruster/>` — ajout d'une **cloche de tuyère 3D** (`cylinderGeometry [0.05, 0.078, 0.08]`, métal sombre) autour du trou, axe local +Y = direction du jet ; la plume démarre à la sortie de la cloche (`y 0.08` au lieu de `0.012`). Le kit étant partagé, tous les vaisseaux gagnent la tuyère 3D. (2) `ShiftDart.tsx` — tuyères strafe replacées sur le **flanc cylindrique** des réservoirs (x = ±1.62, coque perpendiculaire au jet), z = 0.0 et 1.1 (symétriques, pas de couple). Vérifié : `tsc` propre hors démo/tempVaisseaux, `GET /play` → 200, chunk conforme.
+
+**Appris / incidents** : rien de cassé. Leçon : poser une tuyère là où la coque est perpendiculaire au jet, sinon la plaque flotte / le jet semble sortir de biais.
+
+**Prochaine étape** : playtest visuel sur `/play` (cloches visibles, plumes centrées, Q/D → 2 plumes par flanc), commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
