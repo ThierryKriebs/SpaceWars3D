@@ -635,3 +635,15 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : Thierry relit le chantier session 18, playtest des plumes sur `/play`, commit + push.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 10) : `scene.environmentIntensity = 0.35` — l'env du ShipEnv éblouissait vaisseau et planète
+
+**Fait** : 1 ligne ajoutée dans `ShipEnv` (`models/ships/shared/ThrusterKit.tsx`) après `scene.environment = rt.texture` : `scene.environmentIntensity = 0.35` — tamise les reflets d'environnement pour toute la scène (la coque blanche du ShiftDart passait au blanc pur, la planète aussi). Appliqué sur « applique » explicite de Thierry. Vérifié : `tsc --noEmit` propre hors démo/tempVaisseaux, `GET /play` → 200.
+
+**Appris / incidents** : `scene.environment` s'applique à TOUS les meshStandardMaterial (vaisseau + planète) — d'où la double cause du blanc brûlé. `environmentIntensity` (three ≥ r155) est le réglage global le plus propre.
+
+**Prochaine étape** : playtest visuel sur `/play` (vaisseau moins blanc, planète ok), ajuster 0.35 si besoin, commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.

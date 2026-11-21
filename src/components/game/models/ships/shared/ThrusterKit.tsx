@@ -197,6 +197,7 @@ export function ShipEnv() {
     panel([0.15, 0.2, 0.32], 20, [0, -9, 0], [0, 0, 0]); // very dark floor
     const rt = pmrem.fromScene(env, 0.06);
     scene.environment = rt.texture;
+    scene.environmentIntensity = 0.15; // dim the env reflections globally (ship hull was blowing out to pure white)
     return () => {
       scene.environment = null;
       rt.texture.dispose();
