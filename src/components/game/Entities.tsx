@@ -61,7 +61,7 @@ function ShipMirror({ ship }: { ship: ShipSheet }) {
     ctl.strafe = ship.visualThrust.x;
     ctl.lift = ship.visualThrust.y;
     ctl.pitch = ship.visualRotation.x;
-    ctl.yaw = ship.visualRotation.y;
+    ctl.yaw = -ship.visualRotation.y; // yaw visual sign inverted vs the ThrusterKit nozzle table (numpad 4 <-> 6 swapped, verified in play)
     ctl.roll = ship.visualRotation.z;
   });
   // Ship3DModel = the 3D maquette chosen by name in the sheet: "shift-dart" -> <ShiftDart />.

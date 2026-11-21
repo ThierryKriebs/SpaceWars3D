@@ -647,3 +647,15 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : playtest visuel sur `/play` (vaisseau moins blanc, planète ok), ajuster 0.35 si besoin, commit + push par Thierry.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite 11) : signe visuel du lacet inversé (numpad 4 ↔ 6)
+
+**Fait** : `Entities.tsx`, 1 ligne (sur « applique » explicite) : `ctl.yaw = -ship.visualRotation.y` — la table RCS du kit avait le lacet en miroir par rapport à notre convention ; touche 4 et 6 échangent leurs tuyères. La physique est inchangée (seul le canal visuel est inversé, frein de lock compris). Vérifié : `tsc` propre hors démo/tempVaisseaux, `GET /play` → 200, chunk servi contient `ctl.yaw = -ship.visualRotation.y`.
+
+**Appris / incidents** : rien de cassé. À vérifier en jeu : 4 → nez à gauche + gaz des tuyères miroir ; idem pour 5/8 (tangage), Entrée (roulis), Q/D, Maj/Ctrl — si un autre axe est inversé, même fix d'une ligne au miroir.
+
+**Prochaine étape** : playtest des 6 axes sur `/play`, commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
