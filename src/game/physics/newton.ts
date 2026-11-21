@@ -23,12 +23,12 @@ export function updateShips(dt: number): void {
     const worldShipRotationY = ship.rotation.y;
     const worldShipRotationZ = ship.rotation.z;
     
-    //cX => cosinus(X), sX => sinus(X), etc. for the three rotation axes.
+    // cX => cos(X), sX => sin(X), etc. for the three rotation axes.
     const cX = Math.cos(worldShipRotationX); 
     const sX = Math.sin(worldShipRotationX);
     const cY = Math.cos(worldShipRotationY);
     const sY = Math.sin(worldShipRotationY);
-    const cZ = Math.cos(worldShipRotationZ); //cZ  =  cos(roulis)  =  la part que le roulis laisse sur l'axe de départ
+    const cZ = Math.cos(worldShipRotationZ); // cZ = cos(roll) = the share of the original axis that the roll leaves unchanged
     const sZ = Math.sin(worldShipRotationZ);
 
     //The ship pushes in three directions (nose, right wing, roof)
@@ -43,9 +43,9 @@ export function updateShips(dt: number): void {
 
     // 'right' is a single vector (the direction of the wing axis, +X => right side), which can be decomposed along the three axes of the global reference system:
     // right = (1, 0, 0) => The entire right wing is on the world X-component
-    // 1 roll (roulis Z), then 2 yaws (lacet Y), then 3 pitches (tangage X) => always in that order
+    // 1 roll (Z), then 2 yaw (Y), then 3 pitch (X) => always in that order
     const worldRightX   = cZ * cY * 1;                   // cZ * cY * 1 proportion of the wing's direction along the x-axis of the world (the monitor reference), after all rotations
-                                                    //`cZ * cY * 1;`  (roulis * lacet * tangage)
+                                                    //`cZ * cY * 1;`  (roll * yaw * pitch)
     const worldRightY   = sZ * 1 * cX + cZ * sY * sX;    // proportion of the wing's direction along the y-axis of the world, after all rotations
                                                     // sZ * 1 * cX  +  cZ * sY * sX;  
     const worldRightZ   = sZ * 1 * sX - cZ * sY * cX;    // proportion of the wing's direction along the z-axis of the world, after all rotations
@@ -73,15 +73,26 @@ export function updateShips(dt: number): void {
     const flagOppositeForceDetectedY = shipLocalThrustY * shipLocalVelocityY < 0;
     const flagOppositeForceDetectedZ = shipLocalThrustZ * shipLocalVelocityZ < 0;
 
-    // Per-axis inverse-speed lock: if the demanded thrust opposes the current speed on an axis,
-    // lock it — the axis brakes progressively to 0, never reverses while held. Both keys of the axis
-    // released = unlock; from a full stop, one press goes directly.
+    
+    // Per-axis inverse-speed lock — 3 states: 0 = free (armed), 1 = locked (progressive brake to 0,
+    // held at 0 while the key stays down, never reverses), 2 = unlocked by a release (the lock was
+    // already used once during this opposition): a re-press then overrides the lock and inverts freely.
+    
+    // No lock on the axis AND opposite force detected => lock the axis: brake toward 0, never reverse the speed on it
     if (ship.lockInverseSpeedAxisX === 0 && flagOppositeForceDetectedX) ship.lockInverseSpeedAxisX = 1;
     if (ship.lockInverseSpeedAxisY === 0 && flagOppositeForceDetectedY) ship.lockInverseSpeedAxisY = 1;
     if (ship.lockInverseSpeedAxisZ === 0 && flagOppositeForceDetectedZ) ship.lockInverseSpeedAxisZ = 1;
-    if (ship.intent.strafeLeft === 0 && ship.intent.strafeRight === 0) ship.lockInverseSpeedAxisX = 0;
-    if (ship.intent.liftUp === 0 && ship.intent.liftDown === 0) ship.lockInverseSpeedAxisY = 0;
-    if (ship.intent.thrust === 0 && ship.intent.brake === 0) ship.lockInverseSpeedAxisZ = 0;
+    
+    // Both keys of the axis released while locked → 2 (double-click disengages the lock: a re-press will not re-lock)
+    if (ship.intent.strafeLeft === 0 && ship.intent.strafeRight === 0 && ship.lockInverseSpeedAxisX === 1) ship.lockInverseSpeedAxisX = 2;
+    if (ship.intent.liftUp === 0 && ship.intent.liftDown === 0 && ship.lockInverseSpeedAxisY === 1) ship.lockInverseSpeedAxisY = 2;
+    if (ship.intent.thrust === 0 && ship.intent.brake === 0 && ship.lockInverseSpeedAxisZ === 1) ship.lockInverseSpeedAxisZ = 2;
+    
+    // Lock at 2 AND no opposite force detected (the speed is now in the same direction as the thrust, or 0)
+    // AND a thrust is applied on this axis (re-press after the double-click) => the lock re-arms to 0
+    if (ship.lockInverseSpeedAxisX === 2 && !flagOppositeForceDetectedX && shipLocalThrustX !== 0) ship.lockInverseSpeedAxisX = 0;
+    if (ship.lockInverseSpeedAxisY === 2 && !flagOppositeForceDetectedY && shipLocalThrustY !== 0) ship.lockInverseSpeedAxisY = 0;
+    if (ship.lockInverseSpeedAxisZ === 2 && !flagOppositeForceDetectedZ && shipLocalThrustZ !== 0) ship.lockInverseSpeedAxisZ = 0;
     
     // Locked axes FIRST: progressive brake toward 0 on that axis (stop at 0, never reverse).
     // shipLocalVelocityX/Y/Z (Step 3.5) is the current speed component along that ship axis.
@@ -105,7 +116,7 @@ export function updateShips(dt: number): void {
       ship.velocity.z += worldForwardZ * dv;
     }
 
-    // Effective thrust: 0 on a locked axis (the brake above already decelerates it) — no thrust against the brake.
+    // Effective thrust: 0 while locked (1) — no thrust against the brake; full thrust when disengaged (2)
     const appliedThrustX = ship.lockInverseSpeedAxisX === 1 ? 0 : shipLocalThrustX;
     const appliedThrustY = ship.lockInverseSpeedAxisY === 1 ? 0 : shipLocalThrustY;
     const appliedThrustZ = ship.lockInverseSpeedAxisZ === 1 ? 0 : shipLocalThrustZ;
@@ -148,7 +159,7 @@ export function updateShips(dt: number): void {
 
     // Rotation: same newtonian law on the angular axes — the intent accelerates
     // angularVelocity, capped at maxTurnRate; released, the ship keeps spinning.
-    // Per-axis inverse-spin lock: same rule as the translation lock, but the rotation angles
+    // Per-axis inverse-spin lock: same 3 states as the translation lock, but the rotation angles
     // are already world-frame, so angularVelocity needs no projection.
     // true = the demanded turn on this axis fights the current spin (opposite signs)
     const flagOppositeRotationDetectedX = (ship.intent.pitchUp - ship.intent.pitchDown) * ship.angularVelocity.x < 0;
@@ -157,9 +168,14 @@ export function updateShips(dt: number): void {
     if (ship.lockInverseSpinAxisX === 0 && flagOppositeRotationDetectedX) ship.lockInverseSpinAxisX = 1;
     if (ship.lockInverseSpinAxisY === 0 && flagOppositeRotationDetectedY) ship.lockInverseSpinAxisY = 1;
     if (ship.lockInverseSpinAxisZ === 0 && flagOppositeRotationDetectedZ) ship.lockInverseSpinAxisZ = 1;
-    if (ship.intent.pitchUp === 0 && ship.intent.pitchDown === 0) ship.lockInverseSpinAxisX = 0;
-    if (ship.intent.yawLeft === 0 && ship.intent.yawRight === 0) ship.lockInverseSpinAxisY = 0;
-    if (ship.intent.rollLeft === 0 && ship.intent.rollRight === 0) ship.lockInverseSpinAxisZ = 0;
+    // Both keys of the axis released while locked → 2 (double-click disengages the lock)
+    if (ship.intent.pitchUp === 0 && ship.intent.pitchDown === 0 && ship.lockInverseSpinAxisX === 1) ship.lockInverseSpinAxisX = 2;
+    if (ship.intent.yawLeft === 0 && ship.intent.yawRight === 0 && ship.lockInverseSpinAxisY === 1) ship.lockInverseSpinAxisY = 2;
+    if (ship.intent.rollLeft === 0 && ship.intent.rollRight === 0 && ship.lockInverseSpinAxisZ === 1) ship.lockInverseSpinAxisZ = 2;
+    // Re-arm (2 → 0) once a pressed turn no longer fights the current spin (the spin changed sign)
+    if (ship.lockInverseSpinAxisX === 2 && !flagOppositeRotationDetectedX && (ship.intent.pitchUp - ship.intent.pitchDown) !== 0) ship.lockInverseSpinAxisX = 0;
+    if (ship.lockInverseSpinAxisY === 2 && !flagOppositeRotationDetectedY && (ship.intent.yawLeft - ship.intent.yawRight) !== 0) ship.lockInverseSpinAxisY = 0;
+    if (ship.lockInverseSpinAxisZ === 2 && !flagOppositeRotationDetectedZ && (ship.intent.rollLeft - ship.intent.rollRight) !== 0) ship.lockInverseSpinAxisZ = 0;
     // Pitch: positive rotation.x = nose UP on screen.
     ship.angularVelocity.x += (ship.intent.pitchUp - ship.intent.pitchDown) * ship.turnPower * dt;
     if (ship.angularVelocity.x > ship.maxTurnRate) ship.angularVelocity.x = ship.maxTurnRate;

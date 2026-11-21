@@ -515,3 +515,27 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : commit + push par Thierry (session 17 complète). Demain : implémenter le débrayage auto, `tsc --noEmit`, playtest sur `/play`.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 : lock anti-inversion à 3 états (double-clic = débrayage à tout moment)
+
+**Fait** : `newton.ts` — le lock des 6 axes passe à 3 états (0 armé / 1 verrouillé / 2 déverrouillé) : relâcher les 2 touches d'un axe verrouillé passe le lock à 2, le réappui applique alors la poussée pleine et inverse librement à n'importe quel moment (plus de re-lock, car l'enclenchement exige lock === 0) ; réarmement 2 → 0 dès qu'une poussée pressée ne s'oppose plus à la vitesse (changement de signe). Pas de débrayage auto à 0 pour une touche maintenue (demande du 20 nov. abandonnée au profit des scénarios 1+2 de Thierry : touche maintenue = freinage jusqu'à 0 et on y reste). `sheets.ts` : commentaires 0/1/2. VISION.md:10 + ARCHITECTURE.md:587/1120 synchronisés (règle 8, daté 21 nov. 2026). Vérifié : `tsc --noEmit` propre hors démo/layout ; `GET /play` → 200 ; chunk dev servi contient `lockInverseSpeedAxisZ === 1) … = 2` et les lignes de réarmement (translation + rotation).
+
+**Appris / incidents** : rien de cassé. Leçon de pédagogie : la ligne `flagOpposite = thrust * speed < 0` est un NIVEAU réévalué chaque frame, pas un front — c'est pourquoi le réappui re-verrouillait avec un lock à 2 états, et pourquoi il faut le 3ᵉ état (mémoire « déjà verrouillé pendant ce contre-courant »).
+
+**Prochaine étape** : playtest sur `/play` par Thierry (scénario 1 : S maintenu → arrêt à 0 maintenu ; scénario 2 : double-clic sur S → inversion immédiate ; puis Z long → re-verrouillage jusqu'à 0), puis commit + push (newton.ts + sheets.ts + VISION.md + ARCHITECTURE.md + ce journal).
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 18 (suite) : commentaires français de newton.ts traduits en anglais (tous justes)
+
+**Fait** : `newton.ts` — tous les commentaires français relus et traduits en anglais (règle 5) : `cosinus/sinus` → `cos/sin`, `roulis/lacet/tangage` → `roll/yaw/pitch`, et les 3 commentaires du lock à 3 états (enclenchement, relâchement → 2, réarmement 2 → 0). Deux petites précisions de formulation au passage : l'enclenchement « verrouille l'axe » (pas la décélération) et le réarmement couvre aussi le cas vitesse = 0. Aucun code touché. Vérifié : plus aucun mot français dans newton.ts, `tsc --noEmit` propre hors démo.
+
+**Appris / incidents** : rien de cassé. Tes commentaires étaient tous justes — la traduction n'a changé que la formulation, pas le sens.
+
+**Prochaine étape** : playtest des scénarios 1+2 sur `/play`, puis commit + push par Thierry (newton.ts + sheets.ts + VISION.md + ARCHITECTURE.md + ce journal).
+
+**Règle du projet** : une session = une victoire.
