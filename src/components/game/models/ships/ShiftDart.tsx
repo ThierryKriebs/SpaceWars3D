@@ -81,11 +81,20 @@ export const RCS_NOZZLES: RcsNozzle[] = [
   { id: "fwd-R-B", pos: [0.54, -0.262, 1.63], exhaust: [0, -0.79, 0.62], fires: { trans: 1 } },
   { id: "fwd-L-T", pos: [-0.54, 0.022, 1.63], exhaust: [0, 0.79, 0.62], fires: { trans: 1 } },
   { id: "fwd-L-B", pos: [-0.54, -0.262, 1.63], exhaust: [0, -0.79, 0.62], fires: { trans: 1 } },
-  // ---- ROLL: top/bottom of the outer tanks (lever arm ±1.3 in x).
-  { id: "roll-R-B", pos: [1.3, -0.427, 0.55], exhaust: [0, -1, 0], fires: { roll: 1 } },
-  { id: "roll-R-T", pos: [1.3, 0.067, 0.55], exhaust: [0, 1, 0], fires: { roll: -1 } },
-  { id: "roll-L-T", pos: [-1.3, 0.067, 0.55], exhaust: [0, 1, 0], fires: { roll: 1 } },
-  { id: "roll-L-B", pos: [-1.3, -0.427, 0.55], exhaust: [0, -1, 0], fires: { roll: -1 } },
+  // ---- ROLL: top/bottom, ONE front + ONE rear row on each outer tank
+  //      (lever arm ±1.3 in x). 2x2 per side = 8 nozzles.
+  //      Rows symmetric about the ship's body axis (z 0.61 ≈ main tank axis
+  //      0.6): (0.0 + 1.22)/2 = 0.61 → no parasitic pitch torque.
+  //      Rear row at 1.22: bell (radius 0.08, spans 1.14..1.30) stays on the pod
+  //      cylinder (ends at 1.6, rear cone 1.6..1.95).
+  { id: "roll-R-B-F", pos: [1.3, -0.427, 0.0], exhaust: [0, -1, 0], fires: { roll: 1 } },
+  { id: "roll-R-B-R", pos: [1.3, -0.427, 1.22], exhaust: [0, -1, 0], fires: { roll: 1 } },
+  { id: "roll-R-T-F", pos: [1.3, 0.067, 0.0], exhaust: [0, 1, 0], fires: { roll: -1 } },
+  { id: "roll-R-T-R", pos: [1.3, 0.067, 1.22], exhaust: [0, 1, 0], fires: { roll: -1 } },
+  { id: "roll-L-T-F", pos: [-1.3, 0.067, 0.0], exhaust: [0, 1, 0], fires: { roll: 1 } },
+  { id: "roll-L-T-R", pos: [-1.3, 0.067, 1.22], exhaust: [0, 1, 0], fires: { roll: 1 } },
+  { id: "roll-L-B-F", pos: [-1.3, -0.427, 0.0], exhaust: [0, -1, 0], fires: { roll: -1 } },
+  { id: "roll-L-B-R", pos: [-1.3, -0.427, 1.22], exhaust: [0, -1, 0], fires: { roll: -1 } },
   // ---- STRAFE: front+rear pair on the CYLINDRICAL flank of the outer tanks (x = ±1.62,
   //      where the hull is perpendicular to the jet) — lateral gas, opposite force.
   //      Two nozzles per side, symmetric about the tank center (z 0.55): yaw torques cancel.

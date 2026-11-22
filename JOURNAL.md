@@ -827,3 +827,51 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : demain — **dédoubler les RCS des réservoirs externes pour les rotations** (les `roll-*` actuels, 4 tuyères à x = ±1.3, z = 0.55 sur les pods externes, seront doublés pour plus de couple de roulis). Puis commit + push par Thierry du chantier session 18.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 19 : RCS roll des pods externes dédoublés (8 → 16 tuyères) — sur « on reprend »
+
+**Fait** : `ShiftDart.tsx` — les tuyères `roll-*` passent de 2 à **4 rangées en z** sur chaque pod externe : z = **0.0 (F) / 0.37 (M1) / 0.73 (M2) / 1.1 (R)** au lieu de 0.0/1.1. 8 → **16 tuyères** (4 combos R-B/R-T/L-T/L-B × 4 rangées). Espacement régulier (1.1/3 ≈ 0.3667 arrondi à 0.37/0.73), toutes dans le cylindre du pod (z -0.5..1.6), y inchangés (-0.427 bottom / 0.067 top = surface exacte du cylindre). Centre de chaque paire symétrique = 0.55 = axe du pod externe → **aucun couple de tangage parasite**. Nommage : F/R conservés (stabilité des ids), M1/M2 ajoutés. Commentaire de bloc réécrit. Vérifié : `tsc` propre sur les fichiers vaisseau (seul `tempVaisseaux/` échoue, connu), `GET /play` → 200, les 16 ids `roll-*` présents dans le chunk compilé (`.next/dev/static/chunks/src_*.js`).
+
+**Appris / incidents** : les symlinks pnpm de `node_modules/` étaient cassés (cible = ancien chemin `Programmations/Javascript/` sans `Web/`) → `rm -rf node_modules && pnpm install --prefer-offline` a tout réparé (1m40, offline depuis le store). À noter si le projet est encore déplacé un jour.
+
+**Prochaine étape** : playtest visuel du roulis sur `/play` (flèches gauche/droite + NumpadEnter : 8 plumes de roulis au lieu de 4), ajuster `turnPower` dans `PlayerShip.ts` si Thierry veut que la physique suive le visuel. Puis commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 20 : REVERT du dédoublement des roll (16 → 8 tuyères, 2x2) — demande explicite Thierry
+
+**Fait** : `ShiftDart.tsx` — retour arrière sur la session 19 : les `roll-*` repassent à **2 rangées en z** (avant **0.0** / arrière **1.1**) × top/bottom × gauche/droite = **8 tuyères (2x2 par côté)**, ids F/R uniquement (M1/M2 supprimés). Paires symétriques centrées sur z = 0.55 = axe des pods externes → aucun couple de tangage. Commentaire réécrit. Vérifié : `tsc` propre sur les modèles, `GET /play` → 200, chunk compilé ne contient plus que les 8 ids `roll-*-F` / `roll-*-R`.
+
+**Appris / incidents** : rien de cassé. Leçon : Thierry veut les RCS roll en 2x2 (avant/arrière), pas 2x4 — ne pas re-proposer le dédoublement sans demande explicite.
+
+**Prochaine étape** : playtest visuel du roulis sur `/play`, puis commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 21 : roll arrière reculés à z=1.2 (paire symétrique du centre du vaisseau, z=0.6) — sur demande Thierry (« recule un peu ceux à l'arrière »)
+
+**Fait** : `ShiftDart.tsx` — les 4 tuyères `roll-*-R` passent de z=1.1 à **z=1.2** (roll seulement, strafe arrière restent à 1.1 — scope confirmé par Thierry). Paire avant/arrière centrée sur **(0.0 + 1.2)/2 = 0.6 = axe des réservoirs internes = centre du corps du vaisseau** → symétrique par rapport au centre du vaisseau, aucun couple de tangage. Recul de +0.1 seulement. Cloche (rayon 0.08, span 1.12..1.28) reste sur le cylindre du pod (fin à 1.6, cône arrière 1.6..1.95). Commentaire réécrit. Vérifié : `tsc` propre sur les modèles, `GET /play` → 200, chunk compilé conforme (`roll-R-B-R` pos `[1.3,-0.427,1.2]`).
+
+**Appris / incidents** : rien de cassé. Interprétation retenue (Thierry a répondu « je ne sais pas » pour la valeur exacte) : « centre du vaisseau » = axe du corps principal (réservoirs internes, z=0.6), cohérent avec la règle de la session 18 (« centré se lit sur la pièce qui porte la tuyère »). Si Thierry visait un autre centre, le cran à ajuster est le z des `roll-*-R`.
+
+**Prochaine étape** : playtest visuel du roulis sur `/play`, puis commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-21 — Session 22 : roll arrière reculés encore un cran (z 1.2 → 1.22) — sur « recule un tout tout petit peu encore »
+
+**Fait** : `ShiftDart.tsx` — les 4 tuyères `roll-*-R` passent de z=1.2 à **z=1.22** (+0.02, « tout tout petit peu »). Paire centrée sur (0.0+1.22)/2 = 0.61. Cloche (span 1.14..1.30) toujours sur le cylindre du pod (fin 1.6). Commentaire ajusté. Vérifié : `tsc` propre sur les modèles, `GET /play` → 200, chunk conforme (`roll-R-B-R` pos `[1.3,-0.427,1.22]`).
+
+**Appris / incidents** : rien de cassé. Cran actuel : roll F z=0.0 / R z=1.22.
+
+**Prochaine étape** : playtest visuel du roulis sur `/play` (« c'est bon » attendu), puis commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
