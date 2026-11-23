@@ -931,3 +931,138 @@ Vérifié : `tsc` propre sur les 3 fichiers ; `GET /play` → 200 ; chunk compil
 **Prochaine étape** : playtest visuel sur `/play` — vérifier que la réduction de plume est bien progressive. Puis commit + push par Thierry.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-22 — Session 24 : la VRAIE Terre (textures NASA Blue Marble, normal map, nuages, atmosphère) — SANS rotation ni collision — demandé par Thierry
+
+**Fait** : `Earth.tsx` réécrit + 4 textures dans `public/textures/` + `<Suspense>` autour de `<Earth/>` dans `Scene.tsx` (useTexture suspend). Textures téléchargées depuis le repo three.js `examples/textures/planets/` (données NASA Blue Marble, domaine public — eoimages.gsfc.nasa.gov injoignable en timeout depuis ici) : `earth_atmos.jpg` (albedo 2048², 512 Ko), `earth_normal.jpg` (normal map = relief montagnes/océans, 337 Ko), `earth_clouds.png` (nuages 1024² avec alpha, 226 Ko), `earth_specular.jpg` (gardée au cas où). 3 couches dans un `<group position={[0,0,-20]}>` :
+1. **surface** : sphère 64×64, `meshStandardMaterial` map + normalMap (normalScale 0.85) → relief réel ; roughness 0.85.
+2. **nuages** : sphère scale 1.012, map clouds `transparent depthWrite={false}`, dérive lente via `clouds.offset.x += dt*0.004` dans `useFrame` (wrapS=RepeatWrapping, offset % 1) — c'est le vent des nuages, PAS la rotation de la planète.
+3. **atmosphère** : sphère scale 1.18, `meshBasicMaterial` bleu `#3d7bff`, `side: BackSide`, `blending: Additive`, opacity 0.28, depthWrite false → liseret bleu autour du limbe (seules les faces arrière du shell rendu = halo).
+
+`colorSpace = SRGBColorSpace` sur map et clouds (three r187). `specularMap` retiré : plus dispo sur MeshStandardMaterial en r187 — le relief vient du normal map. **Pas de rotation de la planète** (commit séparé, Thierry veut comprendre ce code). **Pas de collision** (commit séparé).
+
+Vérifié : `tsc --noEmit` propre (hors tempVaisseaux/Terre2065 connus) ; `GET /play` → 200 ; les 4 URLs `/textures/…` → 200 ; chunk compilé référence `earth_atmos`/`earth_clouds`.
+
+**Appris / incidents** : `meshStandardMaterial` n'a plus `specularMap` en three r187 (workflow metalness/roughness) — le specular map est pour `MeshPhongMaterial`. Le normal map suffit pour le relief. NASA eoimages.gsfc.nasa.gov timeout depuis cette machine → textures three.js (NASA-derived) à la place.
+
+**Prochaine étape** : commit de cette planète (sans rotation/collision), puis playtest visuel sur `/play`. Ensuite : rotation permanente de la planète (code expliqué à Thierry), puis collision sphère dans `newton.ts`, puis champ d'étoiles infini qui suit le vaisseau.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-22 — Session 24 (suite) : atmosphère trop épaisse/plate + planète trop petite — corrigé — signalé par Thierry
+
+**Fait** : `Earth.tsx` + nouveau `src/game/core/world.ts`.
+- **Planète agrandie** : `EARTH.radius` 5 → **20**, position `[0,0,-20]` → **`[0,0,-60]`** (le vaisseau démarre à z=-10, donc ~30 unités au-dessus de la surface, diamètre apparent ~44° dans le FOV 75° — une vraie planète qui domine le ciel). Constantes dans `game/core/world.ts` (nombres purs, sans three.js — réutilisées par la future collision).
+- **Atmosphère progressive** : le shell plat `BackSide` opacity 0.28 scale 1.18 est remplacé par un **ShaderMaterial fresnel** sur une coque fine scale **1.06** : `intensity = pow(1 - abs(dot(vNormal, (0,0,1))), 3.0)` en view space, `BackSide` + `AdditiveBlending`. Le point chaud est au limbe externe de la coque, décroissance douce vers 0 vers la planète → liseret fin et progressif (plus un anneau plat épais).
+
+Vérifié : `tsc` propre (hors tempVaisseaux/Terre2065) ; `GET /play` → 200 ; chunk compilé contient le shader (`uPower` ×9). Non commité : Thierry committera.
+
+**Prochaine étape** : playtest visuel sur `/play` (taille planète + finesse du liseret). Puis rotation permanente de la planète (code expliqué), puis collision, puis étoiles infinies.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-22 — Session 24 (suite 2) : échelle planète + liseret encore trop intense/peu progressif (screenshot Thierry) — corrigé
+
+**Fait** : `world.ts` — `EARTH.radius` 20 → **30** (position inchangée [0,0,-60]) : diamètre apparent ~62° (vs 44°) depuis le spawn du vaisseau. Rappel d'échelle : chasseur ~15 m vs Terre 12 742 km → ratio ~850 000×, impossible en unités de jeu (le vaisseau fait ~6 unités) → on rend la planète visuellement énorme à la place. `Earth.tsx` atmosphère : coque scale 1.06 → **1.15** (anneau plus large = dégradé plus étalé), `uPower` 3.0 → **3.5**, nouveau `uPeak = 0.45` qui **cappe l'intensité max** (le ring était saturé/néon à cause du additif sur fond noir), couleur `#4a8cff` → `#3a6fd8` (bleu plus profond, moins vif). Résultat attendu : liseret fin au limbe externe, fondu progressif vers la planète, intensité max ~45 %.
+
+Vérifié : `tsc` propre ; `GET /play` → 200 ; chunk contient `uPeak`.
+
+**Prochaine étape** : playtest visuel (taille + liseret). Puis rotation planète, collision, étoiles infinies.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-22 — Session 24 (suite 3) : liseret « décollé » de la planète (bande noire entre les deux, screenshot) — fresnel inversé — corrigé
+
+**Fait** : `Earth.tsx` — le fresnel `pow(1-|dot|, p)` peakait au bord EXTERNE de la coque et valait ~0 au limbe de la planète → bande noire entre planète et anneau. Inversion : `intensity = pow(uCoef - dot(vNormal, (0,0,1)), uPower) * uPeak` avec coque BackSide (dot négatif côté lointain) → le pic est au limbe de la planète (coef+|dot| max, masqué au centre par la profondeur) et décroît vers `coef^p` au bord externe de la coque. Coque scale 1.15 → **1.10** (moins grande), uCoef 0.58, uPower 3.0, uPeak 0.55, couleur #3a6fd8. Résultat attendu : liseret collé au contour de la planète, fondu progressif vers l'espace.
+
+Vérifié : `tsc` propre ; `/play` → 200 ; chunk contient `uCoef`.
+
+**Prochaine étape** : playtest visuel du liseret. Puis rotation planète, collision, étoiles infinies.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-22 — Session 24 (suite 4) : liseret asymétrique (sPricing selon l'angle, "pas le même centre") — vrai vecteur view par fragment — corrigé
+
+**Fait** : `Earth.tsx` — le fresnel utilisait l'axe view fixe `(0,0,1)` : dès que la planète n'est pas au centre de l'écran, le rim n'était plus symétrique autour d'elle (visible d'un côté, invisible de l'autre). Correction : `vViewDir = normalize(-mvPosition.xyz)` par fragment (vrai vecteur fragment→caméra) et `d = clamp(-dot(vNormal, vViewDir), 0, 1)` sur la coque BackSide → `d` vaut 0 au bord externe de la coque et croît vers le limbe de la planète (occlu au-delà) → pic au limbe, fondu à 0 vers l'extérieur, **symétrique autour de la planète de n'importe quel angle** (même centre, même diamètre). Coque scale 1.10 → **1.08**, uPower 1.0, uPeak 1.6, couleur #3a6fd8.
+
+Vérifié : `tsc` propre ; `/play` → 200 ; chunk contient `vViewDir`.
+
+**Prochaine étape** : playtest visuel du liseret sous plusieurs angles. Puis rotation planète, collision, étoiles infinies.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-22 — Session 24 (suite 5) : inversion des touches Numpad8 / Numpad5 — demande Thierry
+
+**Fait** : `keyboard.ts` — `Numpad8` passe de `pitchUp` à **pitchDown**, `Numpad5` de `pitchDown` à **pitchUp**. Une seule table KEYMAP modifiée, keydown/keyup restent cohérents.
+
+Vérifié : `tsc` propre ; `/play` → 200.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-22 — Session 24 (suite 6) : liseret un peu plus sombre et fondu 25% plus progressif — demande Thierry
+
+**Fait** : `Earth.tsx` — `uPeak` 1.6 → **1.4** (≈12 % plus sombre) ; coque atmosphère scale 1.08 → **1.10** (anneau de fondu 25 % plus large : le dégradé s'étale sur plus de distance, s'estompe plus progressivement vers l'espace).
+
+Vérifié : `tsc` propre ; `/play` → 200.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-22 — Session 24 (suite 7) : liseret toujours pas progressif en vue rapprochée (screenshot) — shader basé sur l'angle du rayon de vue, pas sur la normale — corrigé
+
+**Fait** : `Earth.tsx` — le fresnel sur normale sature quand la caméra est proche/à l'intérieur de la coque (dot ≈ −1 partout → bande uniforme à bords durs). Remplacé par un shader qui calcule **l'angle θ du rayon de vue par rapport au centre de la planète** : `t = (θ_shell − θ)/(θ_shell − θ_planet)`, `intensity = pow(t, uPower) * uPeak`. θ_planet = asin(R/D) (limbe planète), θ_shell = asin(R_shell/D) (silhouette coque, π si caméra dedans), mis à jour chaque frame dans `useFrame` avec la matrice view caméra et D = distance caméra→planète. Résultat : le pic est exactement au limbe de la planète, fondu linéaire progressif vers l'extérieur, symétrique à toute distance et tout angle — même en orbite basse (caméra dans la coque). Coque 1.10, uPeak 1.4 (sombre), uPower 1.0.
+
+Vérifié : `tsc` propre ; `/play` → 200 ; chunk contient `uThetaPlanet`/`uThetaShell`.
+
+**Prochaine étape** : playtest visuel du liseret en orbite basse et de loin. Puis rotation planète, collision, étoiles infinies.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-22 — Session 24 (suite 8) : liseret trop clair vs texture sombre (screenshot) — ambient up + liseret down — demande Thierry
+
+**Fait** : `Sun.tsx` — `ambientLight` 0.5 → **0.85** (la face nuit de la Terre garde sa texture lisible, éclairage plus uniforme) ; `Earth.tsx` — `uPeak` 1.4 → **1.2** (liseret un peu moins vif, sous le niveau de la texture éclairée). Les deux ensemble pour équilibrer le contraste planète/liseret.
+
+Vérifié : `tsc` propre ; `/play` → 200.
+
+**Prochaine étape** : playtest visuel. Puis rotation planète, collision, étoiles infinies.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-22 — Session 24 (suite 9) : nuages ralentis de 60% — demande Thierry
+
+**Fait** : `Earth.tsx` — vitesse de dérive `0.004` → **`CLOUD_DRIFT_SPEED = 0.0016`** (constante nommée en haut du fichier, ×0.4 = 60 % plus lent), utilisée dans le `useFrame` des nuages. Thierry a ses propres réglages de liseret en live (uColor #3769ce, uPower 1.8, uPeak 0.8).
+
+Vérifié : `tsc` propre ; `/play` → 200.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-22 — Session 24 (suite 10) : relief géométrique réel sur les continents — demande Thierry
+
+**Fait** : `Earth.tsx` — la sphère surface passe en 128×128 segments et le matériau gagne `displacementMap={map}` (l'albédo sert de heightmap via son canal vert : océans sombres = bas, continents = hauts) + `displacementScale = RELIEF_SCALE = 0.5` + `displacementBias = -0.12` (constantes nommées en haut du fichier). Les sommets sont réellement déplacés → relief 3D visible en orbite basse, en plus du normal map (relief d'éclairage). Nuages relevés à scale 1.02 pour ne pas traverser les montagnes. `world.ts` : ajout de `EARTH_SURFACE_MAX = radius + 0.5` pour la future sphère de collision. (Pas de heightmap dédiée téléchargée : NASA/unpkg injoignables ou 404, pas de PIL/ImageMagick — l'albédo fait l'affaire.)
+
+Vérifié : `tsc` propre ; `/play` → 200 ; chunk contient `displacementScale`/`RELIEF_SCALE`.
+
+**Prochaine étape** : playtest visuel du relief en volant bas. Puis rotation planète, collision, étoiles infinies.
+
+**Règle du projet** : une session = une victoire.

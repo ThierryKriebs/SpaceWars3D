@@ -17,8 +17,8 @@ const KEYMAP: Record<string, keyof InputIntent> = {
   ControlLeft: "liftDown",    // (AZERTY: Ctrl gauche)   Translation to Axis -Y
   Space: "stopAllTranslation",// (AZERTY: space)         Auto-brake, stop only all Translation
   AltLeft: "stopAllRotation", // (AZERTY: Alt gauche)    Auto-brake, stop only all Rotation
-  Numpad8: "pitchUp",         // (AZERTY: 8, numpad)     Rotation around +X
-  Numpad5: "pitchDown",       // (AZERTY: 5, numpad)     Rotation around -X
+  Numpad8: "pitchDown",       // (AZERTY: 8, numpad)     Rotation around -X
+  Numpad5: "pitchUp",         // (AZERTY: 5, numpad)     Rotation around +X
   Numpad4: "yawLeft",         // (AZERTY: 4, numpad)     Rotation around +Y
   Numpad6: "yawRight",        // (AZERTY: 6, numpad)     Rotation around -Y
   ArrowRight: "rollRight",    // (AZERTY: fleche droite) Rotation around -Z 

@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 // Kept for debugging (mouse orbit/zoom/pan) — replaced by CameraRig:
 // import { OrbitControls } from "@react-three/drei";
@@ -33,7 +34,9 @@ export default function Scene() {
       {/* <OrbitControls /> Debug tool kept commented out — binds the mouse to the camera (orbit/zoom/pan) */}
       <Space />
       <Sun />
-      <Earth />
+      <Suspense fallback={null}>{/* Earth loads its NASA textures (suspense) */}
+        <Earth />
+      </Suspense>
       <ShipEnv /> {/* the shared light studio from the thruster kit: gives the metal hulls their reflections */}
       <Entities />
     </Canvas>
