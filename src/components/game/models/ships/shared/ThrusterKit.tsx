@@ -126,6 +126,9 @@ export function Thruster({
 }) {
   const plumeRef = useRef<THREE.Mesh>(null);
   const forced = useRef<number | null>(null);
+  // Smoothed intensity: the plume grows/shrinks PROGRESSIVELY toward the target
+  // (exponential approach), instead of snapping when acceleration starts/stops.
+  const smoothed = useRef(0);
   const quat = useMemo(() => {
     const q = new THREE.Quaternion();
     q.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(...nozzle.exhaust).normalize());
@@ -139,16 +142,26 @@ export function Thruster({
     };
   }, [nozzle, registry]);
 
-  useFrame(() => {
-    const f = forced.current !== null ? forced.current : nozzleIntensity(nozzle, ctlRef.current);
+  useFrame((_, dt) => {
+    const target = forced.current !== null ? forced.current : nozzleIntensity(nozzle, ctlRef.current);
+    // Exponential approach toward the target (~12/s): the plume shrinks/grows over
+    // ~200 ms instead of snapping — no more abrupt flicker at max speed / spin cap.
+    const k = 1 - Math.exp(-dt * 12);
+    smoothed.current += (target - smoothed.current) * k;
+    const f = smoothed.current;
     const m = plumeRef.current;
     if (!m) return;
     m.visible = f > 0.02;
-    m.scale.set(0.5 + f * 0.6, 0.16 + f * 1.4, 0.5 + f * 0.6);
+    // Length grows with f, but keeps a minimum stub (0.28) so that a TINY plume
+    // (movement/rotation indicator, f ≈ 0.1) stays visible as a small jet.
+    const len = Math.max(0.16 + f * 1.4, 0.28);
+    m.scale.set(0.5 + f * 0.6, len, 0.5 + f * 0.6);
     // THE GAS IS BORN AT THE BELL EXIT: base glued there (local y 0.08),
     // the tip is what grows — never inside the hull.
-    m.position.y = 0.08 + (0.16 + f * 1.4) / 2;
-    (m.material as THREE.MeshBasicMaterial).opacity = Math.min(0.9, f * 0.95);
+    m.position.y = 0.08 + len / 2;
+    // Opacity proportional to f, with a floor (0.3) so that tiny plumes are not
+    // swallowed by the dark space background. Full plumes (f ≥ ~0.67) are unchanged.
+    (m.material as THREE.MeshBasicMaterial).opacity = Math.min(0.9, Math.max(0.3, f * 0.95));
   });
 
   return (

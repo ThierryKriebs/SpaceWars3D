@@ -253,8 +253,14 @@ function OutTank({ side }: { side: 1 | -1 }) {
 function MainEngine({ ctlRef }: { ctlRef: React.MutableRefObject<ShipCommands> }) {
   const plume = useRef<THREE.Mesh>(null);
   const core = useRef<THREE.Mesh>(null);
-  useFrame((state) => {
-    const t = THREE.MathUtils.clamp(ctlRef.current.thrust, 0, 1);
+  // Smoothed thrust: the main plume grows/shrinks progressively (same idea as the RCS
+  // thrusters) instead of snapping when acceleration starts/stops (max speed, etc.).
+  const smoothedT = useRef(0);
+  useFrame((state, dt) => {
+    const target = THREE.MathUtils.clamp(ctlRef.current.thrust, 0, 1);
+    const k = 1 - Math.exp(-dt * 12);
+    smoothedT.current += (target - smoothedT.current) * k;
+    const t = smoothedT.current;
     const flick = 0.92 + Math.sin(state.clock.elapsedTime * 42) * 0.08;
     const on = t > 0.01;
     if (plume.current) {

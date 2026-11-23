@@ -57,6 +57,12 @@ export function updateShips(dt: number): void {
     const worldUpY      = cX * cZ - sX * sY * sZ;
     const worldUpZ      = sX * cZ + cX * sY * sZ;
 
+    // Velocity BEFORE this frame's changes — used at the end of the frame to compute
+    // the ACTUAL acceleration (delta-v / dt), which drives the visual plumes.
+    const prevVx = ship.velocity.x;
+    const prevVy = ship.velocity.y;
+    const prevVz = ship.velocity.z;
+
     // Each ship reads ITS OWN intent from its sheet. All are 0-1 intentions.
     // Step 3 — demanded thrust in the ship frame (units/s²): how hard we push along each ship axis.
     const shipLocalThrustX = (ship.intent.strafeRight - ship.intent.strafeLeft) * ship.thrustPower;       // along the wings
@@ -121,12 +127,8 @@ export function updateShips(dt: number): void {
     const appliedThrustY = ship.lockInverseSpeedAxisY === 1 ? 0 : shipLocalThrustY;
     const appliedThrustZ = ship.lockInverseSpeedAxisZ === 1 ? 0 : shipLocalThrustZ;
 
-    // Effective push for the VISUAL mirror (gas plumes): while locked, the brake is the real push —
-    // full power while the axis still moves, 0 at rest (the gas stops when the ship is immobilized);
-    // otherwise the raw demand. Normalized to -1..1. Physics above is unchanged.
-    ship.visualThrust.x = ship.lockInverseSpeedAxisX === 1 ? -Math.sign(shipLocalVelocityX) : shipLocalThrustX / ship.thrustPower;
-    ship.visualThrust.y = ship.lockInverseSpeedAxisY === 1 ? -Math.sign(shipLocalVelocityY) : shipLocalThrustY / ship.thrustPower;
-    ship.visualThrust.z = ship.lockInverseSpeedAxisZ === 1 ? -Math.sign(shipLocalVelocityZ) : shipLocalThrustZ / ship.thrustPower;
+    // (visualThrust is computed AFTER the speed cap below, from the ACTUAL delta-v —
+    //  see the "ACTUAL acceleration" block after the speed clamp.)
 
     // Step 4 — new velocity on the world axes (ship-frame thrust converted to the world frame)
     ship.velocity.x += (worldRightX * appliedThrustX + worldUpX * appliedThrustY + worldForwardX * appliedThrustZ) * dt;
@@ -159,13 +161,60 @@ export function updateShips(dt: number): void {
       ship.velocity.z *= k;
     }
 
+    // ACTUAL acceleration this frame, projected on the ship's axes (delta-v / dt).
+    // This is what the gas plumes show: full when the ship really accelerates,
+    // tiny when a key is held but the ship cannot accelerate further (max speed cap).
+    const dvx = dt > 0 ? (ship.velocity.x - prevVx) / dt : 0;
+    const dvy = dt > 0 ? (ship.velocity.y - prevVy) / dt : 0;
+    const dvz = dt > 0 ? (ship.velocity.z - prevVz) / dt : 0;
+    const actualAccelX = dvx * worldRightX + dvy * worldRightY + dvz * worldRightZ;
+    const actualAccelY = dvx * worldUpX + dvy * worldUpY + dvz * worldUpZ;
+    const actualAccelZ = dvx * worldForwardX + dvy * worldForwardY + dvz * worldForwardZ;
+
+    // Visual thrust for the gas plumes — three levels:
+    // - locked axis (1): the brake is the real push — full while still moving, 0 at rest;
+    // - REAL acceleration this frame (|a| > 0.01): full plume, proportional to the actual accel;
+    // - moving on the axis but NOT accelerating (drifting, or at max speed with the key held):
+    //   a TINY plume (0.1) in the direction of the velocity — visual info that there IS
+    //   movement on this axis, without suggesting gas is being burned;
+    // - at rest on the axis: 0 — no plume.
+    const TINY_PLUME = 0.1;
+    if (ship.lockInverseSpeedAxisX === 1) {
+      ship.visualThrust.x = -Math.sign(shipLocalVelocityX);
+    } else {
+      const a = actualAccelX / ship.thrustPower;
+      if (Math.abs(a) > 0.01) ship.visualThrust.x = a;
+      else if (Math.abs(shipLocalVelocityX) > 0.01) ship.visualThrust.x = TINY_PLUME * Math.sign(shipLocalVelocityX);
+      else ship.visualThrust.x = 0;
+    }
+    if (ship.lockInverseSpeedAxisY === 1) {
+      ship.visualThrust.y = -Math.sign(shipLocalVelocityY);
+    } else {
+      const a = actualAccelY / ship.thrustPower;
+      if (Math.abs(a) > 0.01) ship.visualThrust.y = a;
+      else if (Math.abs(shipLocalVelocityY) > 0.01) ship.visualThrust.y = TINY_PLUME * Math.sign(shipLocalVelocityY);
+      else ship.visualThrust.y = 0;
+    }
+    if (ship.lockInverseSpeedAxisZ === 1) {
+      ship.visualThrust.z = -Math.sign(shipLocalVelocityZ);
+    } else {
+      const a = actualAccelZ / ship.thrustPower;
+      if (Math.abs(a) > 0.01) ship.visualThrust.z = a;
+      else if (Math.abs(shipLocalVelocityZ) > 0.01) ship.visualThrust.z = TINY_PLUME * Math.sign(shipLocalVelocityZ);
+      else ship.visualThrust.z = 0;
+    }
+
     // THE move of the world: position += velocity × dt (inertia).
     ship.position.x += ship.velocity.x * dt;
     ship.position.y += ship.velocity.y * dt;
     ship.position.z += ship.velocity.z * dt;
 
+    // Angular velocity BEFORE this frame's rotation changes — used at the end to compute
+    // the ACTUAL angular acceleration (delta-w / dt), which drives the visual plumes.
+    const prevWx = ship.angularVelocity.x;
+    const prevWy = ship.angularVelocity.y;
+    const prevWz = ship.angularVelocity.z;
 
-    
     // Rotation: same newtonian law on the angular axes — the intent accelerates
     // angularVelocity, capped at maxTurnRate; released, the ship keeps spinning.
     // Per-axis inverse-spin lock: same 3 states as the translation lock, but the rotation angles
@@ -215,10 +264,8 @@ export function updateShips(dt: number): void {
     const appliedRotationThrustY = ship.lockInverseRotationAxisY === 1 ? 0 : rotationDemandY;
     const appliedRotationThrustZ = ship.lockInverseRotationAxisZ === 1 ? 0 : rotationDemandZ;
 
-    // Same for the rotation demand (visual mirror): while locked, the spin brake is the real push (0 at rest)
-    ship.visualRotation.x = ship.lockInverseRotationAxisX === 1 ? -Math.sign(ship.angularVelocity.x) : rotationDemandX;
-    ship.visualRotation.y = ship.lockInverseRotationAxisY === 1 ? -Math.sign(ship.angularVelocity.y) : rotationDemandY;
-    ship.visualRotation.z = ship.lockInverseRotationAxisZ === 1 ? -Math.sign(ship.angularVelocity.z) : rotationDemandZ;
+    // (visualRotation is computed AFTER the spin brake below, from the ACTUAL delta-w —
+    //  see the "ACTUAL angular acceleration" block after stopAllRotation.)
 
     // Pitch: positive rotation.x = nose UP on screen.
     ship.angularVelocity.x += appliedRotationThrustX * ship.turnPower * dt;
@@ -253,6 +300,46 @@ export function updateShips(dt: number): void {
         ship.angularVelocity.z *= k;
       }
     }
+
+    // ACTUAL angular acceleration this frame (delta-w / dt, world = ship axes for spin).
+    // Same idea as the translation plumes: full when really spinning up, tiny when a turn
+    // key is held but the spin is already at maxTurnRate (no more angular acceleration).
+    const dwx = dt > 0 ? (ship.angularVelocity.x - prevWx) / dt : 0;
+    const dwy = dt > 0 ? (ship.angularVelocity.y - prevWy) / dt : 0;
+    const dwz = dt > 0 ? (ship.angularVelocity.z - prevWz) / dt : 0;
+
+    // Visual rotation for the gas plumes — same three levels as translation:
+    // - locked axis (1): the spin brake is the real push — full while still spinning, 0 at rest;
+    // - REAL angular acceleration this frame (|a| > 0.01): full plume, proportional to actual spin change;
+    // - spinning on the axis but NOT accelerating (drifting spin, or at maxTurnRate with the key held):
+    //   a TINY plume (0.1) in the direction of the spin — visual info that there IS rotation on this axis;
+    // - at rest on the axis: 0 — no plume.
+    const TINY_SPIN = 0.1;
+    if (ship.lockInverseRotationAxisX === 1) {
+      ship.visualRotation.x = -Math.sign(ship.angularVelocity.x);
+    } else {
+      const a = dwx / ship.turnPower;
+      if (Math.abs(a) > 0.01) ship.visualRotation.x = a;
+      else if (Math.abs(ship.angularVelocity.x) > 0.01) ship.visualRotation.x = TINY_SPIN * Math.sign(ship.angularVelocity.x);
+      else ship.visualRotation.x = 0;
+    }
+    if (ship.lockInverseRotationAxisY === 1) {
+      ship.visualRotation.y = -Math.sign(ship.angularVelocity.y);
+    } else {
+      const a = dwy / ship.turnPower;
+      if (Math.abs(a) > 0.01) ship.visualRotation.y = a;
+      else if (Math.abs(ship.angularVelocity.y) > 0.01) ship.visualRotation.y = TINY_SPIN * Math.sign(ship.angularVelocity.y);
+      else ship.visualRotation.y = 0;
+    }
+    if (ship.lockInverseRotationAxisZ === 1) {
+      ship.visualRotation.z = -Math.sign(ship.angularVelocity.z);
+    } else {
+      const a = dwz / ship.turnPower;
+      if (Math.abs(a) > 0.01) ship.visualRotation.z = a;
+      else if (Math.abs(ship.angularVelocity.z) > 0.01) ship.visualRotation.z = TINY_SPIN * Math.sign(ship.angularVelocity.z);
+      else ship.visualRotation.z = 0;
+    }
+
     ship.rotation.x += ship.angularVelocity.x * dt;
     ship.rotation.y += ship.angularVelocity.y * dt;
     ship.rotation.z += ship.angularVelocity.z * dt;

@@ -875,3 +875,59 @@ Règle : toute session de travail (surtout avec un agent de codage) se termine p
 **Prochaine étape** : playtest visuel du roulis sur `/play` (« c'est bon » attendu), puis commit + push par Thierry.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-22 — Session 23 : les plumes RCS reflètent l'accélération RÉELLE (pas la demande brute) — tiny plume à vitesse max — sur « on reprend »
+
+**Fait** : `newton.ts` — `visualThrust` et `visualRotation` ne reflètent plus la demande brute des touches, mais l'accélération RÉELLE de ce frame (delta-v / dt projeté sur les axes du vaisseau, delta-w / dt pour le spin). Principe : une plume = du gaz éjecté = une force appliquée = une accélération. Comportement :
+- **Touche pressée + accélération réelle** (ex. W depuis l'arrêt) → plume pleine (proportionnelle à l'accélération réelle).
+- **Touche maintenue mais plus d'accélération** (vitesse max atteinte, ou spin à maxTurnRate) → plume TINY (0.1) — info visuelle qu'on se déplace/tourne encore dans cette direction, sans suggérer une accélération qui n'existe pas.
+- **Axe verrouillé (lock=1)** → inchangé : frein visible tant que le vaisseau bouge encore, 0 à l'arrêt.
+- **Aucune touche sur l'axe** → 0, aucune plume même en dérivant (l'inertie ne brûle pas de gaz).
+
+Implémentation : `prevVx/Y/Z` et `prevWx/Y/Z` sauvegardés en début de frame ; `actualAccelX/Y/Z` et `dwx/y/z` calculés après le speed cap / le spin brake ; `visualThrust`/`visualRotation` réécrits avec le plancher `TINY_PLUME = 0.1` / `TINY_SPIN = 0.1` quand `demand ≠ 0` mais `|actual| ≤ 0.01`. Aucun changement dans `Entities.tsx` (lit déjà `visualThrust`/`visualRotation`), ni dans `ThrusterKit.tsx` (seuil de visibilité 0.02 < 0.1, la tiny plume reste visible). Sign convention vérifiée : `actualAccelZ` projeté sur `worldForward` a le même signe que `shipLocalThrustZ` (accélérer vers l'avant = positif des deux côtés).
+
+Vérifié : `tsc --noEmit` propre sur les fichiers modifiés (seuls `Terre2065.tsx` et `tempVaisseaux/` échouent, préexistant/connu) ; `GET /play` → 200 ; le chunk compilé contient `TINY_PLUME`, `TINY_SPIN`, `actualAccelX/Y/Z` ; simulation 300 frames : accélération → vis=±1.0, à vitesse max avec W maintenu → vis=0.1, après relâchement en dérive → vis=0, freinage verrouillé → vis=∓1.0 jusqu'à l'arrêt.
+
+**Appris / incidents** : rien de cassé. Le signe de `actualAccel` projeté sur les axes du vaisseau est cohérent avec `shipLocalThrust` (même convention : positif = vers l'avant/haut/droite). Piège évité : le delta-v est en coordonnées monde, il faut le projeter sur `worldForward/Right/Up` pour obtenir l'accélération en frame vaisseau.
+
+**Prochaine étape** : playtest visuel sur `/play` — maintenir W jusqu'à vitesse max : la plume avant doit rétrécir à une fine lueur ; idem pour le roulis à vitesse de spin max. Puis commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-22 — Session 23 (suite) : la tiny plume indique le MOUVEMENT sur l'axe (pas seulement la touche maintenue) — correction demandée par Thierry
+
+**Fait** : `newton.ts` — correction de la condition de la tiny plume : ce n'est plus « demande ≠ 0 » (touche enfoncée) mais « vitesse non nulle sur l'axe » (`|shipLocalVelocity| > 0.01` en translation, `|angularVelocity| > 0.01` en rotation). Résultat : même après avoir relâché la touche, si le vaisseau dérive encore sur un axe (ou tourne), la tiny plume (0.1) reste allumée dans la direction du mouvement — info visuelle « il y a déplacement/rotation en cours sur cet axe ». Dès que l'axe est à l'arrêt : plus de plume. Priorité : accélération réelle > tiny (mouvement sans accélération) > 0 (repos). Le cas « touche maintenue à vitesse max » donne la même tiny plume qu'avant (le signe est le même : celui de la vitesse = celui de la demande dans ce cas).
+
+Vérifié : `tsc` propre sur newton.ts ; `GET /play` → 200 ; simulation : à vitesse max avec W → vis=0.1, en dérive sans touche → vis=0.1 (le nouveau comportement voulu), freinage verrouillé → vis=∓1.0 jusqu'à l'arrêt, au repos sans touche → vis=0, première frame de W depuis l'arrêt → vis=1.0.
+
+**Prochaine étape** : playtest visuel sur `/play` — couper les moteurs en pleine vitesse : les tiny plumes doivent rester visibles tant que le vaisseau dérive. Puis commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-22 — Session 23 (suite 2) : les tiny plumes n'étaient pas visibles (opacité 0.095) — floor de rendu dans ThrusterKit — signalé par Thierry
+
+**Fait** : `ThrusterKit.tsx` — le Thruster avait `opacity = min(0.9, f*0.95)` : à f=0.1 (tiny plume) → opacité 0.095, invisible sur le fond noir. Correction : floor d'opacité à **0.3** (`max(0.3, f*0.95)`) et longueur minimale **0.28** (`max(0.16+f*1.4, 0.28)`) quand la plume est allumée. Les plumes pleines (f ≥ ~0.67) sont inchangées. Le moteur principal (`MainEngine` dans ShiftDart.tsx) avait déjà une base d'opacité à 0.3, il était visible — pas touché.
+
+Vérifié : `tsc` propre ; `GET /play` → 200 ; chunk compilé contient le `Math.max(0.3, …)`. À f=0.1 : opacité 0.3, longueur 0.3 → petite plume visible. À f=1 : opacité 0.9, longueur 1.56 → inchangé.
+
+**Prochaine étape** : playtest visuel sur `/play` — dérive sans touche : les tiny plumes doivent maintenant apparaître comme de petites lueurs. Puis commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-22 — Session 23 (suite 3) : lissage progressif des plumes (plus d'à-coup) — demandé par Thierry
+
+**Fait** : `ThrusterKit.tsx` + `ShiftDart.tsx` (MainEngine) — ajout d'un lissage exponentiel de l'intensité affichée : `smoothed += (target - smoothed) * (1 - exp(-dt*12))` dans le `useFrame` de chaque `Thruster` et du moteur principal. Constante ~12/s → la plume met ~200 ms à passer de pleine à tiny (ou l'inverse) au lieu de snapper instantanément quand l'accélération démarre/arrête (vitesse max, spin max). Le `useFrame` du Thruster prend maintenant `(state, dt)` pour le delta réel. Aucun changement de physique — c'est purement visuel, dans la couche 3D.
+
+Vérifié : `tsc` propre sur les 3 fichiers ; `GET /play` → 200 ; chunk compilé contient `smoothed` (×7). Comportement attendu : à vitesse max avec W maintenu, la plume avant rétrécit progressivement en ~200 ms jusqu'à la tiny lueur ; idem pour le moteur principal et les plumes de rotation.
+
+**Prochaine étape** : playtest visuel sur `/play` — vérifier que la réduction de plume est bien progressive. Puis commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
