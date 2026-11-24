@@ -1150,3 +1150,15 @@ Vérifié : `tsc` propre ; `/play` → 200 ; chunk contient `displacementScale`/
 **Prochaine étape** : inchangée — playtest `/play`, commit + push par Thierry, puis rotation planète et étoiles infinies.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-24 — Session 25 (suite 6) : renommage `outwardDirection*` → `proportionFromPlanetToShipDirection*` (nom choisi par Thierry)
+
+**Fait** : `outwardDirectionX/Y/Z` → `proportionFromPlanetToShipDirectionX/Y/Z` (9 occurrences) et `velocityAlongOutwardDirection` → `velocityAlongPlanetToShipDirection` (4 occurrences), commentaires ajustés (« proportions centre planète → vaisseau », « v·proportions »). Pur renommage. Vérifié : 0 ancien nom, `tsc` propre hors préexistant, tests headless 3/3 OK (frontal/ram/oblique), `/play` → 200, chunk contient `proportionFromPlanetToShipDirectionX`. Non commité : Thierry committera.
+
+**Appris / incidents** : rien de cassé.
+
+**Prochaine étape** : inchangée — playtest `/play`, commit + push par Thierry, puis rotation planète et étoiles infinies.
+
+**Règle du projet** : une session = une victoire.

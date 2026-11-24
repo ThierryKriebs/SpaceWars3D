@@ -391,31 +391,31 @@ function updatePlanetCollision(ship: ShipSheet): void {
   // Si collision => Repousse le vaisseau + annulation de sa vitesse
   if (distanceToPlanetCenter < touchingDistance) {
     
-    // La DIRECTION sortante : chaque distance signée ÷ distance totale →
-    // des PROPORTIONS entre −1 et +1 sur chaque axe (X²+Y²+Z² = 1, longueur 1).
-    // Elle pointe du centre de la planète droit vers le vaisseau.
-    const outwardDirectionX = signedDistanceFromPlanetCenterX / distanceToPlanetCenter;
-    const outwardDirectionY = signedDistanceFromPlanetCenterY / distanceToPlanetCenter;
-    const outwardDirectionZ = signedDistanceFromPlanetCenterZ / distanceToPlanetCenter;
+    // Les PROPORTIONS centre planète → vaisseau : chaque distance signée ÷ distance
+    // totale → entre −1 et +1 sur chaque axe (X²+Y²+Z² = 1).
+    // Ça pointe du centre de la planète droit vers le vaisseau.
+    const proportionFromPlanetToShipDirectionX = signedDistanceFromPlanetCenterX / distanceToPlanetCenter;
+    const proportionFromPlanetToShipDirectionY = signedDistanceFromPlanetCenterY / distanceToPlanetCenter;
+    const proportionFromPlanetToShipDirectionZ = signedDistanceFromPlanetCenterZ / distanceToPlanetCenter;
 
-    // 1) Repousser le vaisseau : centre de la planète + direction × distance de contact.
-    ship.position.x = EARTH.position.x + outwardDirectionX * touchingDistance;
-    ship.position.y = EARTH.position.y + outwardDirectionY * touchingDistance;
-    ship.position.z = EARTH.position.z + outwardDirectionZ * touchingDistance;
+    // 1) Repousser le vaisseau : centre de la planète + proportions × distance de contact.
+    ship.position.x = EARTH.position.x + proportionFromPlanetToShipDirectionX * touchingDistance;
+    ship.position.y = EARTH.position.y + proportionFromPlanetToShipDirectionY * touchingDistance;
+    ship.position.z = EARTH.position.z + proportionFromPlanetToShipDirectionZ * touchingDistance;
 
     // 2) Annuler le mouvement qui rentre dans la planète :
-    //    v·direction (la constante juste ici) = vitesse vers la planète — négatif = on y fonce.
-    //    On soustrait cette part de la velocity, répartie sur x/y/z selon la direction.
+    //    v·proportions (la constante juste ici) = vitesse vers la planète — négatif = on y fonce.
+    //    On soustrait cette part de la velocity, répartie sur x/y/z selon les proportions.
     //    Le reste (le mouvement le long de la surface) est gardé → glissade.
-    //    Si v·direction ≥ 0 (on s'éloigne déjà) : rien à enlever.
-    const velocityAlongOutwardDirection =
-      ship.velocity.x * outwardDirectionX +
-      ship.velocity.y * outwardDirectionY +
-      ship.velocity.z * outwardDirectionZ;
-    if (velocityAlongOutwardDirection < 0) {
-      ship.velocity.x -= outwardDirectionX * velocityAlongOutwardDirection;
-      ship.velocity.y -= outwardDirectionY * velocityAlongOutwardDirection;
-      ship.velocity.z -= outwardDirectionZ * velocityAlongOutwardDirection;
+    //    Si v·proportions ≥ 0 (on s'éloigne déjà) : rien à enlever.
+    const velocityAlongPlanetToShipDirection =
+      ship.velocity.x * proportionFromPlanetToShipDirectionX +
+      ship.velocity.y * proportionFromPlanetToShipDirectionY +
+      ship.velocity.z * proportionFromPlanetToShipDirectionZ;
+    if (velocityAlongPlanetToShipDirection < 0) {
+      ship.velocity.x -= proportionFromPlanetToShipDirectionX * velocityAlongPlanetToShipDirection;
+      ship.velocity.y -= proportionFromPlanetToShipDirectionY * velocityAlongPlanetToShipDirection;
+      ship.velocity.z -= proportionFromPlanetToShipDirectionZ * velocityAlongPlanetToShipDirection;
     }
   }
 }
