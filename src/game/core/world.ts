@@ -1,7 +1,7 @@
 // world.ts — the geometry of the world, as PLAIN NUMBERS (no three.js:
 // the game/ core stays pure and headless-testable).
-// Shared by the physics (collision, later commit) and the rendering
-// (Earth.tsx places its mesh from these constants).
+// Shared by the physics (collision — newton.ts, updatePlanetCollision) and the
+// rendering (Earth.tsx places its mesh from these constants).
 
 export const EARTH = {
   position: { x: 0, y: 0, z: -60 },
@@ -12,5 +12,5 @@ export const EARTH = {
 export const SHIP_COLLISION_RADIUS = 1.5;
 
 // The planet's surface is displaced (continents rise up to ~RELIEF_SCALE beyond
-// EARTH.radius), so the future collision sphere must use EARTH.radius + 0.5.
+// EARTH.radius), so the collision sphere uses EARTH.radius + 0.5.
 export const EARTH_SURFACE_MAX = EARTH.radius + 0.5;

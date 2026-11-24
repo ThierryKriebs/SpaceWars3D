@@ -1066,3 +1066,87 @@ Vérifié : `tsc` propre ; `/play` → 200 ; chunk contient `displacementScale`/
 **Prochaine étape** : playtest visuel du relief en volant bas. Puis rotation planète, collision, étoiles infinies.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-22 — Session 24 — CLÔTURE : chantier « plumes réalistes + vraie Terre » terminé et commité (f0cfbea, 507fbf7) — on reprend demain
+
+**Bilan de la session** (2 commits Thierry, working tree clean, up to date with origin) :
+
+1. **Plumes RCS réalistes** (`newton.ts`, `ThrusterKit.tsx`, `ShiftDart.tsx`) : les plumes reflètent l'accélération RÉELLE (delta-v/dt projeté sur les axes du vaisseau), pas la demande brute. 3 niveaux : pleine (accélération) / tiny 0.1 (mouvement ou rotation en cours sans accélération, même sans touche — info de dérive) / 0 (repos). Lissage exponentiel (~12/s, ~200 ms) pour un rétrécissement progressif. Floor de rendu (opacité 0.3, longueur 0.28) pour que la tiny plume reste visible.
+2. **Vraie Terre** (`Earth.tsx`, `world.ts`, `Scene.tsx`, `Sun.tsx`, `public/textures/`) : textures NASA Blue Marble (albedo + normal map + nuages PNG), sphère 128×128 avec **displacementMap** (relief 3D réel des continents, `RELIEF_SCALE=0.5`), nuages qui dérivent (`CLOUD_DRIFT_SPEED=0.0006`, 60 % plus lent), atmosphère par **shader à angle de rayon de vue** (pic au limbe, fondu progressif, symétrique à toute distance — réglages Thierry : uColor #3769ce, uPower 1.8, uPeak 0.8, coque 1.10), planète radius 30 en [0,0,-60] (échelle « chasseur vs planète » truquée visuellement), ambient 0.85 pour la face nuit lisible. Inversion Numpad8/Numpad5 (pitch).
+
+**Réglages live de Thierry** (tous en constantes nommées, tweakables en HMR) : `Earth.tsx` → `SHELL_SCALE`, `uColor/uPower/uPeak`, `CLOUD_DRIFT_SPEED`, `RELIEF_SCALE/RELIEF_BIAS` ; `world.ts` → `EARTH.position/radius` ; `Sun.tsx` → `ambientLight intensity`, `directionalLight` ; `keyboard.ts` → `KEYMAP`.
+
+**Prochaine étape demain** (dans l'ordre prévu) :
+1. **Rotation permanente de la planète** — code à expliquer à Thierry (probablement `useFrame` + `group.rotation.y += dt * vitesse` sur le `<group>` de Earth, avec la vitesse en constante nommée) ;
+2. **Collision sphère Terre** dans `newton.ts` avec `EARTH` + `EARTH_SURFACE_MAX` + `SHIP_COLLISION_RADIUS` de `world.ts` (repousser à la surface + supprimer la composante de vitesse entrante) ;
+3. **Champ d'étoiles infini** dans `Stars.tsx` (group d'étoiles qui suit le vaisseau chaque frame, rayon ~200) pour ne plus pouvoir sortir dans le noir.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-24 — Session 25 : newton.ts découpé en hub + 3 sous-fonctions (refactor pur, « applique » explicite)
+
+**Fait** : après un faux départ (collision appliquée sur simple « on reprend » → revert demandé par Thierry, règle réaffirmée : jamais d'écriture sans « applique »), la collision a d'abord été posée en simple commentaire PLAN en français dans `newton.ts` (déplacé en fin de boucle à la demande de Thierry : « après tout le mouvement »). Puis sur « applique » : `newton.ts` restructuré en hub — `updateShips(dt)` (seul export, contrat `loop.ts` inchangé) appelle par vaisseau `integrateTranslation(ship, dt)` → `integrateRotation(ship, dt)` → `resolvePlanetCollision(ship)` (cette dernière ne contient encore que le bloc PLAN en français ; le code collision viendra à part). Tout reste dans le fichier (pas de helper externe, décision session 13). **Preuve d'équivalence** : old (HEAD) vs new compilés séparément, 200 scénarios aléatoires × 120 frames × 24 champs comparés à chaque frame = 576 000 comparaisons, **écart max = 0 (identique bit à bit)**. Vérifié : `tsc --noEmit` propre hors Terre2065/tempVaisseaux ; `GET /play` → 200, chunk servi contient `integrateTranslation`/`integrateRotation`/`resolvePlanetCollision`. ARCHITECTURE.md (arbre §physics) synchronisé (règle 8). Non commité : Thierry committera.
+
+**Appris / incidents** : (1) « on reprend » ≠ autorisation d'écrire — l'agent ne touche un fichier que sur « applique » explicite, même pour du « petit ». (2) Le bloc PLAN en français a d'abord été mis dans `world.ts` (la ressource jointe) au lieu de `newton.ts` — « le fichier » visé était celui du code, pas la ressource. (3) Nommage : les noms courts (`nx`, `vDotN`) sont refusés — convention du projet = noms longs explicites (`outwardNormalX`, `velocityAlongOutwardNormal`…), on n'est pas limité en caractères. (4) Un refactor de 350 lignes ne se valide pas à la relecture seule : preuve numérique old-vs-new obligatoire avant commit (fait ici : 0 différence).
+
+**Prochaine étape** : sur « applique » suivant, écrire la vraie collision dans `resolvePlanetCollision` (noms longs, commentaires d'abord en français temporaire puis anglais règle 5) : distance centre vaisseau ↔ `EARTH.position` < `EARTH_SURFACE_MAX + SHIP_COLLISION_RADIUS` → repousse radiale + suppression de la composante entrante de velocity. Vérifs : script headless (pas de pénétration, pas d'énergie ajoutée, arrêt frontal), `tsc`, `/play` 200, playtest. Puis commit + push par Thierry. Ensuite : rotation permanente de la planète, étoiles infinies.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-24 — Session 25 (suite) : renommage `integrate*` → `update*` (« va pour update » de Thierry)
+
+**Fait** : `integrateTranslation` → `updateTranslation`, `integrateRotation` → `updateRotation` (définition + appel dans le hub + commentaire STRUCTURE + ligne d'arbre ARCHITECTURE.md ; 0 occurrence de l'ancien nom restante). Verbe `update` retenu pour sa cohérence avec `updateShips`/`updatePlayer` (« écrit dans la photo à ce tick »). Pur renommage. Vérifié : `tsc` propre hors préexistant, `/play` → 200, chunk servi contient `updateTranslation`. **Retenu par Thierry** : `resolvePlanetCollision` → `updatePlanetCollision` (famille `update*`) — renommage propagé (newton.ts ×3, ARCHITECTURE.md), 0 occurrence de l'ancien nom, `tsc` propre, `/play` 200, chunk conforme. Non commité : Thierry committera.
+
+**Appris / incidents** : rien de cassé.
+
+**Prochaine étape** : « applique » pour écrire la vraie collision dans `updatePlanetCollision` (noms longs, commentaires d'abord en français temporaire).
+
+---
+
+## 2026-11-24 — Session 25 (suite 2) : la vraie collision planète écrite dans `updatePlanetCollision` — sur « applique »
+
+**Fait** : `newton.ts` — `updatePlanetCollision(ship)` (appelée en dernier par le hub, après tout le mouvement) : sphère vs sphère avec `EARTH` / `EARTH_SURFACE_MAX` / `SHIP_COLLISION_RADIUS` de `world.ts` (import ajouté en tête de fichier). Noms longs validés avec Thierry : `offsetFromPlanetCenterX/Y/Z`, `distanceToPlanetCenter` (garde 1e-6), `touchingDistance` = 32, `outwardNormalX/Y/Z`, `velocityAlongOutwardNormal`. Si pénétration : repousse le centre du vaisseau exactement sur la sphère de contact le long de la radiale + suppression de la composante entrante de la vitesse (v·n < 0) → glissade, pas de rebond, pas d'énergie ajoutée. Commentaires écrits en FRANÇAIS temporaire (marqués comme tels, à traduire en anglais règle 5). Docs resynchronisées (règle 8) : `world.ts` (en-tête + note EARTH_SURFACE_MAX), `Earth.tsx` (en-tête « No collision yet » + note RELIEF_SCALE), ARCHITECTURE.md (puce « La collision avec la planète » dans §newton, datée 24 nov. 2026). Vérifié : `tsc --noEmit` propre hors préexistant ; **test headless du vrai code compilé : 11/11 OK** (frontal : posé à dist=32.000000, z=-28, v=0 ; oblique : jamais de pénétration, jamais d'énergie ajoutée, v·n ≥ 0 en contact, échappement tangentiel ; loin et spawn : inchangés ; 10 s à pleine poussée dans la planète : collé à 32 sans NaN ; 100 scénarios aléatoires × 240 frames près de la planète : dist ≥ 32 partout, 0 NaN) ; `GET /play` → 200, chunk servi contient `updatePlanetCollision`. Non commité : Thierry committera.
+
+**Appris / incidents** : rien de cassé. Rappel : la collision ne produit aucune plume (l'impact n'est pas du gaz) — `visualThrust` est calculé avant, inchangé.
+
+**Prochaine étape** : playtest sur `/play` (voler vers la Terre à fond : glissade sans rebond ni traversée, frontal et en biais). Puis commit + push par Thierry. Ensuite : rotation permanente de la planète (Earth.tsx), puis champ d'étoiles infini (Stars.tsx).
+
+---
+
+## 2026-11-24 — Session 25 (suite 3) : clarification « distances signées » vs « proportions » dans `updatePlanetCollision` — demande Thierry « change pour que ce soit clair »
+
+**Fait** : renommage dans `newton.ts` pour distinguer les deux familles : `offsetFromPlanetCenterX/Y/Z` → **`signedDistanceFromPlanetCenterX/Y/Z`** (position − position = distance signée sur chaque axe, en unités de jeu) ; `outwardNormalX/Y/Z` → **`outwardDirectionX/Y/Z`** (chaque distance divisée par la distance totale = proportions entre −1 et +1, X²+Y²+Z² = 1) ; `velocityAlongOutwardNormal` → **`velocityAlongOutwardDirection`**. Commentaires FR temporaires réécrits en ce sens (« ce sont des UNITÉS, pas des proportions » / « ce sont des PROPORTIONS »). Pur renommage + commentaires. Vérifié : 0 occurrence des anciens noms, `tsc` propre hors préexistant, test headless re-joué 3/3 OK (frontal posé à 32/v=0, ram 10 s collé à 32, oblique sans pénétration ni énergie ajoutée), `/play` → 200, chunk contient les nouveaux noms. Non commité : Thierry committera.
+
+**Appris / incidents** : rien de cassé. Vocabulaire retenu avec Thierry : offset = distances signées (unités) → distance totale (Pythagore 3D) → direction = proportions (−1..+1). Les intentions 0-1 restent une troisième famille (réglages, pas des vecteurs).
+
+**Prochaine étape** : inchangée — playtest `/play`, commit + push par Thierry, puis rotation planète et étoiles infinies.
+
+---
+
+## 2026-11-24 — Session 25 (suite 4) : « recommence » — renommage distances/proportions réappliqué sur l'édition de Thierry
+
+**Fait** : Thierry avait réédité `newton.ts` en parallèle (ses commentaires « Calcul de la distance min… » et « Si collision => Repousse le vaisseau + annulation de sa vitesse » présents, mon renommage de la suite 3 écrasé — même mécanisme que l'incident session 15). Sur « recommence », le renommage a été réappliqué EN PRÉSERVANT ses commentaires : `offsetFromPlanetCenter*` → `signedDistanceFromPlanetCenter*` (distances signées, unités), `outwardNormal*` → `outwardDirection*` (proportions −1..+1), `velocityAlongOutwardNormal` → `velocityAlongOutwardDirection` ; commentaires « Vecteur… »/« normale unitaire… » remplacés par « distances signées » / « direction = proportions ». 4 éditions séquentielles (une seule à la fois sur le fichier). Vérifié : 0 ancien nom, commentaires de Thierry intacts, `tsc` propre hors préexistant, tests headless 3/3 OK, `/play` → 200, chunk contient `outwardDirectionX`. Non commité : Thierry committera.
+
+**Appris / incidents** : rien de cassé. Règle renforcée : avant toute édition, relire le fichier (ou `git diff`) pour détecter une édition parallèle — ne jamais supposer que le fichier est dans l'état de la dernière vérification.
+
+**Prochaine étape** : inchangée — playtest `/play`, commit + push par Thierry, puis rotation planète et étoiles infinies.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-24 — Session 25 (suite 5) : commentaire de la partie 2 réécrit en clair (« vas-y » de Thierry)
+
+**Fait** : dans `updatePlanetCollision`, le commentaire abstrait (« Enlever de la velocity la part qui rentre… / Produit scalaire… ») remplacé par la version plain-language approuvée : « v·direction = vitesse vers la planète — négatif = on y fonce ; on soustrait cette part répartie sur x/y/z selon la direction ; le reste (le long de la surface) est gardé → glissade ; si ≥ 0, rien à enlever ». Changement de commentaire uniquement. Vérifié : `tsc` propre hors préexistant. Non commité : Thierry committera.
+
+**Appris / incidents** : un commentaire trop abstrait bloque la compréhension même quand le code est bon. Explications données en chat : v = part radiale + part tangente ; exemple (3,0,−4)→(3,0,0) avec dir=(0,0,1) ; contrôle dir inclinée (0.6,0,0.8) : v·dir après = 0. Pas de rebond (restitution 0) — option e>0 notée, non appliquée.
+
+**Prochaine étape** : inchangée — playtest `/play`, commit + push par Thierry, puis rotation planète et étoiles infinies.
+
+**Règle du projet** : une session = une victoire.

@@ -7,8 +7,9 @@
 //   2. clouds     — transparent PNG layer, slightly above the surface, DRIFTING
 //   3. atmosphere — fresnel shader on a thin BackSide shell → PROGRESSIVE blue rim
 //                   (bright at the outer limb, fading to 0 toward the planet)
-// The planet's own rotation is a SEPARATE commit. No collision yet either.
-// Geometry constants live in game/core/world.ts (shared with the future collision).
+// The planet's own rotation is a SEPARATE commit. Sphere collision lives in
+// game/physics/newton.ts (updatePlanetCollision). Geometry constants live in
+// game/core/world.ts (shared between the physics collision and this rendering).
 
 import { useEffect, useMemo } from "react";
 import { useFrame } from "@react-three/fiber";
@@ -27,7 +28,7 @@ const CLOUD_DRIFT_SPEED = 0.0006;
 // (its green channel: dark oceans = low, bright land = high). The sphere's
 // vertices are displaced along their normals by displacementScale.
 // On a radius-30 planet, 0.5 ≈ 1.7% of relief — visible from low orbit.
-// NOTE: the future collision sphere must use RADIUS + RELIEF_SCALE as its radius.
+// NOTE: the collision sphere uses EARTH_SURFACE_MAX = RADIUS + RELIEF_SCALE (world.ts).
 const RELIEF_SCALE = 0.5;
 const RELIEF_BIAS = -0.12; // pushes oceans slightly below 0, keeps land positive
 
