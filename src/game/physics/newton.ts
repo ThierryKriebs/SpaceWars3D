@@ -374,14 +374,14 @@ function updatePlanetCollision(ship: ShipSheet): void {
 
   // Distances SIGNÉES sur chaque axe du monde : position - position = une distance
   // sur l'axe (signe + = côté positif de l'axe). En UNITÉS de jeu, pas des proportions.
-  const signedDistanceFromPlanetCenterX = ship.position.x - EARTH.position.x;
-  const signedDistanceFromPlanetCenterY = ship.position.y - EARTH.position.y;
-  const signedDistanceFromPlanetCenterZ = ship.position.z - EARTH.position.z;
+  const signedDistanceToPlanetCenterX = ship.position.x - EARTH.position.x;
+  const signedDistanceToPlanetCenterY = ship.position.y - EARTH.position.y;
+  const signedDistanceToPlanetCenterZ = ship.position.z - EARTH.position.z;
 
-  // Distance en ligne droite entre les deux centres = Pythagore 3D : racine(X²+Y²+Z²),
-  // un seul nombre. (garde 1e-6 : vaisseau pile au centre → la division ferait 0/0).
+  // Calcul de la distance entre le centre de la planète et le centre du vaisseau
+  // 1e-6 => un petit nombre, évite la division par 0).
   const distanceToPlanetCenter = Math.max(
-    Math.hypot(signedDistanceFromPlanetCenterX, signedDistanceFromPlanetCenterY, signedDistanceFromPlanetCenterZ),
+    Math.hypot(signedDistanceToPlanetCenterX, signedDistanceToPlanetCenterY, signedDistanceToPlanetCenterZ),
     1e-6
   );
 
@@ -391,31 +391,29 @@ function updatePlanetCollision(ship: ShipSheet): void {
   // Si collision => Repousse le vaisseau + annulation de sa vitesse
   if (distanceToPlanetCenter < touchingDistance) {
     
-    // Les PROPORTIONS centre planète → vaisseau : chaque distance signée ÷ distance
-    // totale → entre −1 et +1 sur chaque axe (X²+Y²+Z² = 1).
-    // Ça pointe du centre de la planète droit vers le vaisseau.
-    const proportionFromPlanetToShipDirectionX = signedDistanceFromPlanetCenterX / distanceToPlanetCenter;
-    const proportionFromPlanetToShipDirectionY = signedDistanceFromPlanetCenterY / distanceToPlanetCenter;
-    const proportionFromPlanetToShipDirectionZ = signedDistanceFromPlanetCenterZ / distanceToPlanetCenter;
+    // Les PROPORTIONS centre planète → vaisseau : chaque distance signée ÷ distance → entre −1 et +1 sur chaque axe (X²+Y²+Z² = 1).
+    const proportionToPlanetCenterX = signedDistanceToPlanetCenterX / distanceToPlanetCenter;
+    const proportionToPlanetCenterY = signedDistanceToPlanetCenterY / distanceToPlanetCenter;
+    const proportionToPlanetCenterZ = signedDistanceToPlanetCenterZ / distanceToPlanetCenter;
 
     // 1) Repousser le vaisseau : centre de la planète + proportions × distance de contact.
-    ship.position.x = EARTH.position.x + proportionFromPlanetToShipDirectionX * touchingDistance;
-    ship.position.y = EARTH.position.y + proportionFromPlanetToShipDirectionY * touchingDistance;
-    ship.position.z = EARTH.position.z + proportionFromPlanetToShipDirectionZ * touchingDistance;
+    ship.position.x = EARTH.position.x + proportionToPlanetCenterX * touchingDistance;
+    ship.position.y = EARTH.position.y + proportionToPlanetCenterY * touchingDistance;
+    ship.position.z = EARTH.position.z + proportionToPlanetCenterZ * touchingDistance;
 
-    // 2) Annuler le mouvement qui rentre dans la planète :
-    //    v·proportions (la constante juste ici) = vitesse vers la planète — négatif = on y fonce.
-    //    On soustrait cette part de la velocity, répartie sur x/y/z selon les proportions.
-    //    Le reste (le mouvement le long de la surface) est gardé → glissade.
+    // 2) Annuler le mouvement qui rentre dans la planète, but: Glisser le long de la planète pour peu qu'on arrive un peu de biais
+    //    Si velocityAlongPlanetToShipDirection est négatif => On fonce sur la planète.
+    //      On soustrait cette part de la velocity, répartie sur x/y/z selon les proportions.
+    //      Le reste (le mouvement le long de la surface) est gardé → glissade.
     //    Si v·proportions ≥ 0 (on s'éloigne déjà) : rien à enlever.
     const velocityAlongPlanetToShipDirection =
-      ship.velocity.x * proportionFromPlanetToShipDirectionX +
-      ship.velocity.y * proportionFromPlanetToShipDirectionY +
-      ship.velocity.z * proportionFromPlanetToShipDirectionZ;
+      ship.velocity.x * proportionToPlanetCenterX +
+      ship.velocity.y * proportionToPlanetCenterY +
+      ship.velocity.z * proportionToPlanetCenterZ;
     if (velocityAlongPlanetToShipDirection < 0) {
-      ship.velocity.x -= proportionFromPlanetToShipDirectionX * velocityAlongPlanetToShipDirection;
-      ship.velocity.y -= proportionFromPlanetToShipDirectionY * velocityAlongPlanetToShipDirection;
-      ship.velocity.z -= proportionFromPlanetToShipDirectionZ * velocityAlongPlanetToShipDirection;
+      ship.velocity.x -= proportionToPlanetCenterX * velocityAlongPlanetToShipDirection;
+      ship.velocity.y -= proportionToPlanetCenterY * velocityAlongPlanetToShipDirection;
+      ship.velocity.z -= proportionToPlanetCenterZ * velocityAlongPlanetToShipDirection;
     }
   }
 }
