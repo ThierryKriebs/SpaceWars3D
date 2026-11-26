@@ -31,23 +31,15 @@ export function updateShips(dt: number): void {
 
 // ── Translation: axes → thrust → locks → velocity → brakes → cap → position ──
 function updateTranslation(ship: ShipSheet, dt: number): void {
-  // The ship's local axes in world frame = the columns of its rotation matrix
-  // (same Euler XYZ composition as three.js; verified against the reference
-  // matrix — identical results, shorter names). The nose (local -Z) is
-  // unchanged by roll, but the wing (local +X) and roof (local +Y) are tilted
-  // by it, so right/up include worldShipRotationZ.
-  // Step 1 — the ship's rotation angles in the world frame (Euler XYZ, same order as three.js).
-  const worldShipRotationX = ship.rotation.x;
-  const worldShipRotationY = ship.rotation.y;
-  const worldShipRotationZ = ship.rotation.z;
-
-  // cX => cos(X), sX => sin(X), etc. for the three rotation axes.
-  const cX = Math.cos(worldShipRotationX);
-  const sX = Math.sin(worldShipRotationX);
-  const cY = Math.cos(worldShipRotationY);
-  const sY = Math.sin(worldShipRotationY);
-  const cZ = Math.cos(worldShipRotationZ); // cZ = cos(roll) = the share of the original axis that the roll leaves unchanged
-  const sZ = Math.sin(worldShipRotationZ);
+  // The ship's local axes in world frame = the columns of its rotation matrix R.
+  // Orientation is a QUATERNION (ship.rotation: x,y,z,w) — Euler angles cannot be
+  // integrated per-axis: rotation.x += d would turn around the WORLD X axis, not the
+  // ship's own X axis (that was the 8/5 bug). R(q) below is the same matrix three.js builds.
+  // Step 1 — the ship's orientation quaternion (body → world).
+  const qx = ship.rotation.x;
+  const qy = ship.rotation.y;
+  const qz = ship.rotation.z;
+  const qw = ship.rotation.w;
 
   //The ship pushes in three directions (nose, right wing, roof)
 
@@ -55,25 +47,22 @@ function updateTranslation(ship: ShipSheet, dt: number): void {
   // forward = (0, 0, −1) => The entire nose is on the world Z-component
   // Step 2 — the ship's axes as world direction vectors (length 1: directions only, not speeds, not forces):
   // forward = nose, right = right wing, up = roof. worldForwardX = how much the nose points along the world x-axis.
-  const worldForwardX = -sY;       // proportion of the movement along the x-axis
-  const worldForwardY = sX * cY;   // proportion of the movement along the y-axis
-  const worldForwardZ = -cY * cX;  // proportion of the movement along the z-axis
+  const worldForwardX = -2 * (qx * qz + qw * qy);   // nose = -(column 2 of R(q))
+  const worldForwardY = -2 * (qy * qz - qw * qx);
+  const worldForwardZ = -(1 - 2 * (qx * qx + qy * qy));
 
   // 'right' is a single vector (the direction of the wing axis, +X => right side), which can be decomposed along the three axes of the global reference system:
   // right = (1, 0, 0) => The entire right wing is on the world X-component
   // 1 roll (Z), then 2 yaw (Y), then 3 pitch (X) => always in that order
-  const worldRightX   = cZ * cY * 1;                   // cZ * cY * 1 proportion of the wing's direction along the x-axis of the world (the monitor reference), after all rotations
-                                                  //`cZ * cY * 1;`  (roll * yaw * pitch)
-  const worldRightY   = sZ * 1 * cX + cZ * sY * sX;    // proportion of the wing's direction along the y-axis of the world, after all rotations
-                                                  // sZ * 1 * cX  +  cZ * sY * sX;
-  const worldRightZ   = sZ * 1 * sX - cZ * sY * cX;    // proportion of the wing's direction along the z-axis of the world, after all rotations
-                                                  // sZ * 1 * sX - cZ * sY * cX
+  const worldRightX   = 1 - 2 * (qy * qy + qz * qz);    // right wing = column 0 of R(q)
+  const worldRightY   = 2 * (qx * qy + qw * qz);
+  const worldRightZ   = 2 * (qx * qz - qw * qy);
 
   // 'up' is a single vector (the direction of the roof axis, +Y => top side / canopy), which can be decomposed along the three axes of the global reference system:
   // up = (0, 1, 0) => The entire roof is on the world Y-component
-  const worldUpX      = -cY * sZ;
-  const worldUpY      = cX * cZ - sX * sY * sZ;
-  const worldUpZ      = sX * cZ + cX * sY * sZ;
+  const worldUpX      = 2 * (qx * qy - qw * qz);        // roof = column 1 of R(q)
+  const worldUpY      = 1 - 2 * (qx * qx + qz * qz);
+  const worldUpZ      = 2 * (qy * qz + qw * qx);
 
   // Velocity BEFORE this frame's changes — used at the end of the frame to compute
   // the ACTUAL acceleration (delta-v / dt), which drives the visual plumes.
@@ -238,8 +227,8 @@ function updateRotation(ship: ShipSheet, dt: number): void {
 
   // Rotation: same newtonian law on the angular axes — the intent accelerates
   // angularVelocity, capped at maxTurnRate; released, the ship keeps spinning.
-  // Per-axis inverse-spin lock: same 3 states as the translation lock, but the rotation angles
-  // are already world-frame, so angularVelocity needs no projection.
+  // Per-axis inverse-spin lock: same 3 states as the translation lock. angularVelocity is in
+  // the SHIP frame (body axes) — the quaternion integration at the end composes it intrinsically.
   // rotationDemand = the demanded turn on this axis this frame (difference of the two intent keys)
   const rotationDemandX = ship.intent.pitchUp - ship.intent.pitchDown;
   const rotationDemandY = ship.intent.yawLeft - ship.intent.yawRight;
@@ -361,9 +350,31 @@ function updateRotation(ship: ShipSheet, dt: number): void {
     else ship.visualRotation.z = 0;
   }
 
-  ship.rotation.x += ship.angularVelocity.x * dt;
-  ship.rotation.y += ship.angularVelocity.y * dt;
-  ship.rotation.z += ship.angularVelocity.z * dt;
+  // Integrate the orientation: the spin (angularVelocity) is in the SHIP frame, so the
+  // per-frame rotation is composed on the RIGHT: q_new = q ⊗ dq (body-frame / intrinsic).
+  // This is what makes 8/5 a true loop around the ship's OWN X axis at any attitude.
+  const wx = ship.angularVelocity.x;
+  const wy = ship.angularVelocity.y;
+  const wz = ship.angularVelocity.z;
+  const spin = Math.hypot(wx, wy, wz);
+  const dAngle = spin * dt;
+  if (dAngle > 1e-9) {
+    const k = Math.sin(dAngle / 2) / spin; // dq vector part = k * (wx, wy, wz)
+    const dx = wx * k;
+    const dy = wy * k;
+    const dz = wz * k;
+    const dw = Math.cos(dAngle / 2);
+    const q = ship.rotation;
+    const nx = q.w * dx + q.x * dw + q.y * dz - q.z * dy;
+    const ny = q.w * dy - q.x * dz + q.y * dw + q.z * dx;
+    const nz = q.w * dz + q.x * dy - q.y * dx + q.z * dw;
+    const nw = q.w * dw - q.x * dx - q.y * dy - q.z * dz;
+    const n = Math.hypot(nx, ny, nz, nw) || 1; // renormalize: q stays a unit quaternion
+    q.x = nx / n;
+    q.y = ny / n;
+    q.z = nz / n;
+    q.w = nw / n;
+  }
 }
 
 // ── Planet collision (sphere vs sphere) — called LAST by the hub, after ALL movement ──

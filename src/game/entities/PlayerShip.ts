@@ -7,7 +7,7 @@ export function spawnPlayer(): void {
     model: "shift-dart",
     position: { x: 0, y: 0, z: -10 }, // 10 units in front of the default camera
     velocity: { x: 0, y: 0, z: 0 }, // starts at rest — press W to accelerate
-    rotation: { x: 0, y: 0, z: 0 },
+    rotation: { x: 0, y: 0, z: 0, w: 1 }, // identity quaternion
     angularVelocity: { x: 0, y: 0, z: 0 }, // starts without spin
     intent: { thrust: 0, brake: 0, stopAllTranslation: 0, yawLeft: 0, yawRight: 0, pitchUp: 0, pitchDown: 0, rollLeft: 0, rollRight: 0, stopAllRotation: 0, strafeLeft: 0, strafeRight: 0, liftUp: 0, liftDown: 0 },
     thrustPower: 20,

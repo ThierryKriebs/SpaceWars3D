@@ -51,7 +51,7 @@ function ShipMirror({ ship }: { ship: ShipSheet }) {
     if (!g) return;
     // the copy: read the photo -> set the 3D object. Nothing else.
     g.position.set(ship.position.x, ship.position.y, ship.position.z);
-    g.rotation.set(ship.rotation.x, ship.rotation.y, ship.rotation.z);
+    g.quaternion.set(ship.rotation.x, ship.rotation.y, ship.rotation.z, ship.rotation.w);
     // Fill the command envelope for the model's visuals from the EFFECTIVE values written by
     // newton (ship.visualThrust / ship.visualRotation), not the raw intent: a locked axis at
     // rest shows no gas. Gas is ejected OPPOSITE to the push. Visual only — physics stays in newton.ts.

@@ -7,14 +7,21 @@ export interface Vec3 {
   z: number;
 }
 
+export interface Quat {
+  x: number;
+  y: number;
+  z: number;
+  w: number;
+}
+
 // The ship's sheet in the photo: data only, no methods.
 export interface ShipSheet {
   model: string; // reference to a 3D model in components/game/models/
   
   position: Vec3;
   velocity: Vec3;
-  angularVelocity: Vec3; // rad/s per axis — rotation drifts too (inertia)
-  rotation: Vec3;
+  angularVelocity: Vec3; // rad/s per SHIP axis (body frame) — rotation drifts too (inertia)
+  rotation: Quat; // orientation quaternion (body → world) — Euler angles cannot be integrated per-axis
   
   intent: InputIntent; // this ship's OWN intentions — never the global input
   

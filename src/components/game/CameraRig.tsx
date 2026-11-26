@@ -7,7 +7,7 @@
 // Renders nothing itself.
 
 import { useFrame, useThree } from "@react-three/fiber";
-import { Euler, Quaternion, Vector3 } from "three";
+import { Quaternion, Vector3 } from "three";
 import { state } from "@/game/core/state";
 
 export function CameraRig() {
@@ -19,7 +19,7 @@ export function CameraRig() {
     // ship's exact orientation and sits at (0, 3, 8) in the ship's local frame
     // (3 up, 8 behind). The ship is always centered and the view follows the
     // ship's real angles (yaw AND pitch) — no clamp, no blocking, no flip.
-    const q = new Quaternion().setFromEuler(new Euler(ship.rotation.x, ship.rotation.y, ship.rotation.z));
+    const q = new Quaternion(ship.rotation.x, ship.rotation.y, ship.rotation.z, ship.rotation.w);
     const offset = new Vector3(0, 3, 8).applyQuaternion(q);
     camera.position.set(ship.position.x + offset.x, ship.position.y + offset.y, ship.position.z + offset.z);
     camera.quaternion.copy(q); // look along the ship's own -Z (its nose)
