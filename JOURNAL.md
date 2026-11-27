@@ -1222,3 +1222,39 @@ Vérifié : `tsc` propre ; `/play` → 200 ; chunk contient `displacementScale`/
 **Prochaine étape** : playtest visuel sur `/play` en volant bas (netteté des textures à l'horizon), puis commit + push par Thierry. Ensuite au choix : champ d'étoiles infini (`Stars.tsx`), traduction EN des commentaires de collision dans `newton.ts`.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-27 — Session 27 — CLÔTURE : état des lieux (commits `e5400e2` « FEAT: new Earth tecture 8k and effect », `d240ef7` « FEAT: Big planet »)
+
+**Fait** : session 27 complète et commitée par Thierry, arbre clean. Bilan de là où on en est — MISSION 1 vaisseau 6DOF pilotable (poussée/rétro Z/S, strafe Q/D, lift Maj/Ctrl, rotations pavé 8/5/4/6 + flèche droite + Entrée, freins dédiés Espace/Alt, locks anti-inversion à 3 états sur les 6 axes, plumes RCS = accélération réelle), caméra collée au repère du vaisseau (quaternion), collision sphère avec la planète (contact à 91.5), Terre 8K lisse (normal map seule) + nuages 8K au ras du sol + liseret bleu propre (fondu de limbe des nuages), planète radius 90 centre [0,0,-110] (~128° apparents), anisotropy max, rotation propre de la planète.
+
+**Appris / incidents** : three r187 — `mvPosition` n'existe qu'après `#include <project_vertex>` (ne jamais s'ancrer sur les chunks internes pour injecter du GLSL : calculer depuis `position`/`modelViewMatrix`) ; `wrapS`/`anisotropy` modifiés après le premier upload → `texture.needsUpdate = true` obligatoire (sinon la couture u=0 reste une bande verticale). Textures 8K ≈ 16 Mo en local.
+
+**Prochaine étape** : push par Thierry, puis au choix — champ d'étoiles infini (`Stars.tsx` : le groupe d'étoiles suivrait le vaisseau pour ne plus pouvoir voler dans le noir), ou traduction EN des commentaires français restants dans `updatePlanetCollision` (`newton.ts`, règle 5, en attente depuis le 26 nov.).
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-27 — Session 27 (suite 4) : champ d'étoiles infini (Stars.tsx)
+
+**Fait** : `Stars.tsx` réécrit — le `<DreiStars>` est enveloppé dans un `<group ref>` que le `useFrame` re-centre chaque frame sur la caméra (`groupRef.current.position.copy(camera.position)`) : la sphère d'étoiles suit le vaisseau, on ne peut plus voler dans le noir. Rayon 300 + depth 50 (coquille 300..350, toujours au-delà de la planète radius 90 vue de partout ; `depthTest` laisse la planète occlure les étoiles derrière elle), count 6000, `fade speed={0}` conservés (étoiles rondes et immobiles). Vérifié : `tsc --noEmit` propre hors préexistant. Règle 8 : ARCHITECTURE.md §décor disait déjà « sphère autour du joueur, il ne s'éloigne jamais » — le code rejoint le doc, rien à corriger.
+
+**Appris / incidents** : drei `Stars` — defaults radius 100 / depth 50 (coquille [radius, radius+depth]), material additif `depthWrite: false` + `depthTest` actif (occlusion par la planète OK), `frustumCulled` OK car la caméra est dans la sphère englobante. Rien de cassé.
+
+**Prochaine étape** : playtest sur `/play` — voler loin dans une direction : le ciel d'étoiles doit rester identique partout, jamais de noir. Puis commit + push par Thierry (Stars.tsx + ce journal). Reste ensuite : traduction EN des commentaires de `updatePlanetCollision` dans `newton.ts`.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-27 — Session 27 (suite 5) : commentaires pédagogiques sur les 2 accès à la caméra du <Canvas>
+
+**Fait** : commentaires ajoutés puis **raccourcis en une ligne** (demande Thierry : « clairs, pas hyper longs ») aux deux endroits où on lit la caméra de r3f — `CameraRig.tsx` (« The <Canvas>'s own camera, read from its state — no props needed. ») et `Stars.tsx` (« Each frame, r3f calls this with the Canvas state — `camera` is the Canvas's own camera. »). En dessous : les deux lisent `state.camera` de l'état interne du `<Canvas>` englobant (via React context — pas de props/import) ; c'est le même objet caméra créé par le `<Canvas>` ; `useFrame` reçoit cet état en 1er argument à chaque frame. Rappel tech vérifié dans le dist de fiber : store = zustand v5, PAS Redux. Aucun code changé (commentaires seuls). Vérifié : `tsc --noEmit` propre hors préexistant.
+
+**Appris / incidents** : rien de cassé. Q/R enregistrée pour le futur : `useFrame(({ camera }) => ...)` ≡ `useFrame((state) => state.camera)` — le champ vient de l'état du Canvas, pas d'un composant.
+
+**Prochaine étape** : commit + push par Thierry (CameraRig.tsx, Stars.tsx, ce journal). Ensuite : traduction EN des commentaires de `updatePlanetCollision` dans `newton.ts`.
+
+**Règle du projet** : une session = une victoire.

@@ -11,7 +11,8 @@ import { Quaternion, Vector3 } from "three";
 import { state } from "@/game/core/state";
 
 export function CameraRig() {
-  const { camera } = useThree(); // the default camera of the <Canvas>
+  // The <Canvas>'s own camera, read from its state — no props needed.
+  const { camera } = useThree();
   useFrame(() => { // every rendered frame (~60/s):
     const ship = state.ships[0]; // the player's sheet in the photo
     if (!ship) return;
