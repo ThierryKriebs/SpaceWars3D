@@ -16,7 +16,7 @@
 // game/core/world.ts (shared between the physics collision and this rendering).
 
 import { useEffect, useMemo, useRef } from "react";
-import { useFrame } from "@react-three/fiber";
+import { useFrame, useThree } from "@react-three/fiber";
 import { useTexture } from "@react-three/drei";
 import * as THREE from "three";
 import { EARTH } from "@/game/core/world";
@@ -43,6 +43,9 @@ export function Earth() {
   // to planetRef.current at mount, so useFrame can mutate it without any re-render.
   const planetRef = useRef<THREE.Group>(null);
 
+  // The WebGL renderer, to read the GPU's max anisotropy for the textures below.
+  const gl = useThree((s) => s.gl);
+
   const { map, normalMap, clouds } = useTexture({
     map: "/textures/earth_daymap_8k.jpg", // 8192x4096 — detailed enough for a bigger planet later
     normalMap: "/textures/earth_normal.jpg", // 2K normal map: light/shadow relief only
@@ -54,14 +57,17 @@ export function Earth() {
   // Equirectangular maps tile around the planet: ALL of them need wrapS = Repeat —
   // with the default ClampToEdge, the u=0/u=1 seam becomes a vertical smear band
   // (worst at low mip levels, i.e. seen from far). needsUpdate re-uploads the texture
-  // with the new wrap mode if it was already uploaded once.
+  // with the new sampler params if it was already uploaded once.
+  // anisotropy = GPU max: keeps the textures sharp at grazing angles (low orbit over a big planet).
   useEffect(() => {
     map.colorSpace = THREE.SRGBColorSpace;
+    const maxAnisotropy = gl.capabilities.getMaxAnisotropy();
     for (const tex of [map, normalMap, clouds]) {
       tex.wrapS = THREE.RepeatWrapping;
+      tex.anisotropy = maxAnisotropy;
       tex.needsUpdate = true;
     }
-  }, [map, normalMap, clouds]);
+  }, [gl, map, normalMap, clouds]);
 
   // Clouds drift slowly around the planet — the texture offset scrolls eastward.
   // (This is the clouds' own wind, on top of the planet's rotation below.)
@@ -85,7 +91,8 @@ export function Earth() {
   // the same θ: its alpha fades 1 → 0 between θ_planet and θ_cloud (cloud deck silhouette)
   // → no white cloud inside the blue rim.
   const SHELL_SCALE = 1.10;
-  const CLOUD_SCALE = 1.005; // ~1 texture pixel above the smooth surface (0.15 u on radius 30) — clouds hug the ground and never reach the blue rim
+  const CLOUD_HEIGHT = 0.15; // units above the smooth surface (~a few 8K texture pixels), independent of the planet radius
+  const CLOUD_SCALE = 1 + CLOUD_HEIGHT / RADIUS; // clouds hug the ground and never reach the blue rim
   const atmosphereMat = useMemo(
     () =>
       new THREE.ShaderMaterial({

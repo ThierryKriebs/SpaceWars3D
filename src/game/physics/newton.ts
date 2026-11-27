@@ -400,7 +400,7 @@ function updatePlanetCollision(ship: ShipSheet): void {
   );
 
   // Calcul de la distance min avant collision entre la sphère de collision du vaisseau et celle de la planète:
-  const touchingDistance = EARTH_SURFACE_MAX + SHIP_COLLISION_RADIUS; // 30 + 1.5 = 31.5
+  const touchingDistance = EARTH_SURFACE_MAX + SHIP_COLLISION_RADIUS; // 90 + 1.5 = 91.5
 
   // Si collision => Repousse le vaisseau + annulation de sa vitesse
   if (distanceToPlanetCenter < touchingDistance) {

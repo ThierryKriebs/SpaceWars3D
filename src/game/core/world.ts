@@ -4,8 +4,8 @@
 // rendering (Earth.tsx places its mesh from these constants).
 
 export const EARTH = {
-  position: { x: 0, y: 0, z: -60 },
-  radius: 30, // real Earth is ~850 000x a fighter jet — impossible in game units, so the planet is made visually huge instead
+  position: { x: 0, y: 0, z: -110 }, // moved back so the bigger planet keeps the spawn (0,0,-10) 10 units above its surface (surface at z = -20)
+  radius: 90, // real Earth is ~850 000x a fighter jet — impossible in game units, so the planet is made visually huge instead (8K textures + anisotropy keep it sharp)
 } as const;
 
 // Approximate radius of a ship for collision (the shift dart is ~3-4 units long).

@@ -1198,3 +1198,27 @@ Vérifié : `tsc` propre ; `/play` → 200 ; chunk contient `displacementScale`/
 **Prochaine étape** : playtest visuel sur `/play` (plus de bande à la couture ; possiblement une fine ligne de raccord si les bords de l'image 8K ne se matchent pas au pixel près), puis commit + push par Thierry.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-27 — Session 27 (suite 2) : planète agrandie — radius 30 → 60, centre [0,0,-60] → [0,0,-80]
+
+**Fait** : `world.ts` — `EARTH.radius` 30 → **60**, `EARTH.position` z −60 → **−80** (le spawn (0,0,-10) reste à 10 unités au-dessus de la surface, marge de collision 8.5) ; le rendu (`Earth.tsx`) en hérite automatiquement via `RADIUS`/`POSITION` — seul `CLOUD_SCALE` était codé en dur : il devient `1 + CLOUD_HEIGHT / RADIUS` (`CLOUD_HEIGHT = 0.15`, hauteur constante au-dessus du sol quelle que soit la taille). `newton.ts` : commentaire de `touchingDistance` → 61.5. Apparent depuis le spawn : ~118° de diamètre (vs 62° avant). Vérifié : `tsc` propre hors préexistant ; collision headless 4/4 OK avec les nouvelles constantes (spawn non poussé à dist=70, frontal posé à 61.5/v=0, oblique sans pénétration ni énergie ajoutée, ram 10 s collé à 61.5 sans NaN). Le réglage reste un curseur : `EARTH.radius`/`position` dans `world.ts`, ajustable à chaud (HMR).
+
+**Appris / incidents** : rien de cassé. À surveiller en jouant : à radius 60, voler droit devant depuis le spawn mène au sol en ~1 s à vitesse max — c'est voulu (orbite basse), mais le spawn pourrait être remonté si gênant.
+
+**Prochaine étape** : playtest visuel sur `/play` (planète énorme et nette grâce aux 8K, liseret et nuages toujours propres), ajuster `EARTH.radius` à chaud si besoin, puis commit + push par Thierry. Ensuite au choix : champ d'étoiles infini (`Stars.tsx`), traduction EN des commentaires de collision dans `newton.ts`.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-27 — Session 27 (suite 3) : planète encore agrandie (radius 90, centre [0,0,-110]) + anisotropy max sur les textures
+
+**Fait** : `world.ts` — `EARTH.radius` 60 → **90**, `position.z` −80 → **−110** (surface toujours à z = −20, spawn (0,0,-10) à 10 u du sol, marge de collision 8.5 ; diamètre apparent ~128° depuis le spawn). `Earth.tsx` — `texture.anisotropy = gl.capabilities.getMaxAnisotropy()` sur les 3 textures (`map`, `normalMap`, `clouds`) via `useThree`, posé dans le même `useEffect` que le `wrapS` avec `needsUpdate = true` → textures nettes même aux angles rasants en orbite basse. `newton.ts` : commentaire `touchingDistance` → 91.5. Vérifié : `tsc` propre hors préexistant ; collision headless 3/3 OK (spawn dist=100 non poussé, frontal posé à 91.500000 v=0, ram 10 s collé à 91.5 sans NaN).
+
+**Appris / incidents** : rien de cassé. Le rendu ne se dégrade pas avec la taille : 8K textures (~0.07 u/px à radius 90), sphère lisse 128×128 (coût constant), shader atmosphère indépendant de la taille, anisotropy max pour les angles rasants. Seule limite = gameplay (marge au spawn à surveiller si on grossit encore : reculer `position.z` d'autant).
+
+**Prochaine étape** : playtest visuel sur `/play` en volant bas (netteté des textures à l'horizon), puis commit + push par Thierry. Ensuite au choix : champ d'étoiles infini (`Stars.tsx`), traduction EN des commentaires de collision dans `newton.ts`.
+
+**Règle du projet** : une session = une victoire.
