@@ -28,7 +28,8 @@ export default function Scene() {
   return (
     // style overrides the container's default width/height: 100% and pins
     // the canvas to the viewport (its parent has no definite height).
-    <Canvas style={{ width: "100vw", height: "100vh" }}>
+    // camera far 5000: the star shell lives at 800..900 (Stars.tsx) and must never be depth-culled.
+    <Canvas camera={{ far: 5000 }} style={{ width: "100vw", height: "100vh" }}>
       <GameLoop /> {/* the world advances before the mirrors read it */}
       <CameraRig /> {/* follows the player ship */}
       {/* <OrbitControls /> Debug tool kept commented out — binds the mouse to the camera (orbit/zoom/pan) */}

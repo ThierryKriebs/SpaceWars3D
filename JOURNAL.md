@@ -1258,3 +1258,27 @@ Vérifié : `tsc` propre ; `/play` → 200 ; chunk contient `displacementScale`/
 **Prochaine étape** : commit + push par Thierry (CameraRig.tsx, Stars.tsx, ce journal). Ensuite : traduction EN des commentaires de `updatePlanetCollision` dans `newton.ts`.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-27 — Session 27 (suite 6) : fix bug étoiles pendant les rotations (scintillement + parallaxe)
+
+**Fait** : diagnostic du bug « pendant les rotations les étoiles se déplacent partout et apparaissent/disparaissent » : (1) à radius 300, le `gl_PointSize` de drei (`size * 30/z * (3+sin)`) passait sous 1 px pour beaucoup d'étoiles → scintillement/pop in-out quand la rotation change leur profondeur de vue ; (2) la caméra orbite le vaisseau (~8.5 u) pendant les rotations → parallaxe visible des étoiles à 300 u. Fix dans `Stars.tsx` : coquille radius **800** depth 100 (parallaxe max ~0.6°, invisible), `factor` **4 → 40** (chaque étoile > ~1.5 px, plus de scintillement), `frustumCulled = false` sur les points (via ref drei), le groupe suit toujours la caméra chaque frame. `Scene.tsx` : `<Canvas camera={{ far: 5000 }}>` pour que la coquille (800..900) ne soit jamais depth-culled. Vérifié : `tsc --noEmit` propre hors préexistant.
+
+**Appris / incidents** : un point 3D de taille < 1 px s'affiche par intermittence selon sa position sous-pixel → toujours viser ≥ 1.5 px pour un ciel d'étoiles ; un skybox qui suit la caméra en position a une parallaxe résiduelle = (orbite caméra / rayon coquille) — la rendre négligeable en poussant la coquille loin.
+
+**Prochaine étape** : playtest sur `/play` — faire des loopings/tonneaux : les étoiles doivent tourner de façon rigide avec le monde, sans scintillement ni pop. Puis commit + push par Thierry. Ensuite : traduction EN des commentaires de `updatePlanetCollision` dans `newton.ts`.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-27 — Session 27 (suite 7) : étoiles moins visibles (count 4000, luminosité ×0.7) + idée notée : fondre les étoiles près de la planète
+
+**Fait** : `Stars.tsx` — `count` 6000 → **4000** puis −15% → **3400** (demande Thierry) et les couleurs des points assombries ×**0.7** dans le `useEffect` (attribut `color` du geometry, `needsUpdate`) : le ciel reste subtil sans réintroduire le scintillement (factor 40 conservé = taille mini ~1.5 px). Vérifié : `tsc --noEmit` propre hors préexistant.
+
+**Appris / incidents** : rien de cassé. **Idée notée par Thierry (PAS implémentée, à discuter avant)** : plus on est proche de la planète ou d'un élément lumineux, moins les étoiles devraient se voir — à faire plus tard, ex. en modulant l'opacité/taille des points selon la distance caméra→planète (constantes `EARTH` de world.ts) dans le `useFrame` de Stars.
+
+**Prochaine étape** : playtest sur `/play` (étoiles discrètes, rotations propres), puis commit + push par Thierry. Ensuite : la traduction EN des commentaires de `updatePlanetCollision` dans `newton.ts`, ou l'idée ci-dessus si on la lance.
+
+**Règle du projet** : une session = une victoire.
