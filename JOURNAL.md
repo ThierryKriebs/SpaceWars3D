@@ -1294,3 +1294,27 @@ Vérifié : `tsc` propre ; `/play` → 200 ; chunk contient `displacementScale`/
 **Prochaine étape** : playtest sur `/play` proche de la planète en tournant en Y : liseret d'épaisseur constante, sans ligne dure. Ajuster `RIM_ANGLE` à chaud si besoin. Puis commit + push par Thierry.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-27 — Session 27 (suite 9) : le soleil reste à distance fixe (comme les étoiles) et devient un disque blanc éblouissant
+
+**Fait** : `Sun.tsx` réécrit — le soleil visible est placé sur la coquille centrée sur la caméra (`SUN_DISTANCE = 800`, même rayon que les étoiles, groupe re-centré chaque frame comme `Stars`) : il est toujours à la même distance et même taille angulaire, quoi que fasse le vaisseau. Rendu : disque quasi blanc `#fffdf4` (`toneMapped={false}` → pleine luminosité, éblouissant) + halo radial chaud additif (sprites, toujours face caméra). La `directionalLight` garde `position = SUN_DIRECTION` [100,50,-100] — la lumière vient toujours de la direction du soleil visuel. Vérifié : `tsc --noEmit` propre hors préexistant.
+
+**Appris / incidents** : depuis l'espace le vrai Soleil est un disque BLANC éblouissant (légèrement chaud) — le jaune vif ne vient que de l'atmosphère terrestre au lever/coucher. `toneMapped={false}` sur un sprite basic = couleur exacte à l'écran.
+
+**Prochaine étape** : playtest sur `/play` — voler loin : le soleil garde taille/distance constantes ; vu de près il est un disque blanc éclatant avec halo. Puis commit + push par Thierry (`Sun.tsx` + ce journal).
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-27 — Session 27 (suite 10) : soleil — bord du disque adouci + flare de rayons pulsant
+
+**Fait** : `Sun.tsx` — (1) le disque n'a plus de contour dur : la texture est un dégradé radial plein au centre qui fond vers transparent AVANT le bord (avant : cercle plein à bord net) ; (2) ajout d'un flare façon « vraies photos NASA » : 4 longues diffractions TRÈS fines + 4 diagonales courtes et faibles (texture canvas, sprite additif scale 320), dont l'opacité pulse lentement dans le `useFrame` (`0.1 + 0.35 * (0.5 + 0.5*sin(t*0.4))`, période ~15 s) → les rayons apparaissent/disparaissent de temps en temps. Note : dans le vide spatial le vrai soleil n'a pas de rayons (artefact d'atmosphère/lentille) — c'est un choix de lisibilité jeu. Vérifié : `tsc --noEmit` propre hors préexistant.
+
+**Appris / incidents** : rien de cassé. Un sprite avec `toneMapped={false}` rend sa couleur exacte (disque blanc pur) ; le halo/flare restent en additif avec tone mapping.
+
+**Prochaine étape** : playtest sur `/play` face au soleil : disque sans bord dur, halo chaud, rayons qui pulsent doucement. Puis commit + push par Thierry (`Sun.tsx` + ce journal).
+
+**Règle du projet** : une session = une victoire.
