@@ -351,29 +351,32 @@ function updateRotation(ship: ShipSheet, dt: number): void {
   }
 
   // Integrate the orientation: the spin (angularVelocity) is in the SHIP frame, so the
-  // per-frame rotation is composed on the RIGHT: q_new = q ⊗ dq (body-frame / intrinsic).
-  // This is what makes 8/5 a true loop around the ship's OWN X axis at any attitude.
-  const wx = ship.angularVelocity.x;
-  const wy = ship.angularVelocity.y;
-  const wz = ship.angularVelocity.z;
-  const spin = Math.hypot(wx, wy, wz);
-  const dAngle = spin * dt;
-  if (dAngle > 1e-9) {
-    const k = Math.sin(dAngle / 2) / spin; // dq vector part = k * (wx, wy, wz)
-    const dx = wx * k;
-    const dy = wy * k;
-    const dz = wz * k;
-    const dw = Math.cos(dAngle / 2);
-    const q = ship.rotation;
-    const nx = q.w * dx + q.x * dw + q.y * dz - q.z * dy;
-    const ny = q.w * dy - q.x * dz + q.y * dw + q.z * dx;
-    const nz = q.w * dz + q.x * dy - q.y * dx + q.z * dw;
-    const nw = q.w * dw - q.x * dx - q.y * dy - q.z * dz;
-    const n = Math.hypot(nx, ny, nz, nw) || 1; // renormalize: q stays a unit quaternion
-    q.x = nx / n;
-    q.y = ny / n;
-    q.z = nz / n;
-    q.w = nw / n;
+  // per-frame rotation is composed on the RIGHT: newQuat = rotationQuat ⊗ deltaQuat
+  // (body-frame / intrinsic). This is what makes 8/5 a true loop around the ship's OWN X axis at any attitude.
+  const spinX = ship.angularVelocity.x;
+  const spinY = ship.angularVelocity.y;
+  const spinZ = ship.angularVelocity.z;
+  const spinMagnitude = Math.hypot(spinX, spinY, spinZ);
+  const frameRotationAngle = spinMagnitude * dt;
+  if (frameRotationAngle > 1e-9) {
+    // deltaQuat = this frame's small rotation as a quaternion:
+    // vector part = deltaQuatVectorScale * (spinX, spinY, spinZ), scalar part = cos(angle / 2)
+    const deltaQuatVectorScale = Math.sin(frameRotationAngle / 2) / spinMagnitude;
+    const deltaQuatX = spinX * deltaQuatVectorScale;
+    const deltaQuatY = spinY * deltaQuatVectorScale;
+    const deltaQuatZ = spinZ * deltaQuatVectorScale;
+    const deltaQuatW = Math.cos(frameRotationAngle / 2);
+    const rotationQuat = ship.rotation;
+    // Hamilton product: newQuat = rotationQuat ⊗ deltaQuat
+    const newQuatX = rotationQuat.w * deltaQuatX + rotationQuat.x * deltaQuatW + rotationQuat.y * deltaQuatZ - rotationQuat.z * deltaQuatY;
+    const newQuatY = rotationQuat.w * deltaQuatY - rotationQuat.x * deltaQuatZ + rotationQuat.y * deltaQuatW + rotationQuat.z * deltaQuatX;
+    const newQuatZ = rotationQuat.w * deltaQuatZ + rotationQuat.x * deltaQuatY - rotationQuat.y * deltaQuatX + rotationQuat.z * deltaQuatW;
+    const newQuatW = rotationQuat.w * deltaQuatW - rotationQuat.x * deltaQuatX - rotationQuat.y * deltaQuatY - rotationQuat.z * deltaQuatZ;
+    const newQuatNorm = Math.hypot(newQuatX, newQuatY, newQuatZ, newQuatW) || 1; // renormalize: the quaternion stays unit length
+    rotationQuat.x = newQuatX / newQuatNorm;
+    rotationQuat.y = newQuatY / newQuatNorm;
+    rotationQuat.z = newQuatZ / newQuatNorm;
+    rotationQuat.w = newQuatW / newQuatNorm;
   }
 }
 
