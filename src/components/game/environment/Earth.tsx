@@ -1,12 +1,16 @@
 "use client";
 
 // Earth.tsx — the REAL Earth, not a blue ball.
-// Textures: NASA Blue Marble (public domain), served from /public/textures/.
+// Textures: 8K SolarSystemScope Earth maps (Blue Marble based, via Wikimedia Commons),
+// served from /public/textures/ — high resolution so the planet can later be made bigger.
 // Layers:
-//   1. surface    — albedo map + normal map (relief: mountains, ocean trenches), ROTATING slowly
-//   2. clouds     — transparent PNG layer, slightly above the surface, DRIFTING
-//   3. atmosphere — fresnel shader on a thin BackSide shell → PROGRESSIVE blue rim
-//                   (bright at the outer limb, fading to 0 toward the planet)
+//   1. surface    — 8K albedo (incl. eternal snows at the poles) + 2K normal map (light/shadow
+//                   relief ONLY — the sphere itself stays perfectly smooth), ROTATING slowly
+//   2. clouds     — 8K cloud map used as alphaMap, ~1 texture pixel above the surface, DRIFTING
+//   3. atmosphere — view-angle shader on a thin BackSide shell → PROGRESSIVE blue rim
+//                   peaking at the planet's limb, fading to 0 at the shell's edge.
+//                   The cloud layer fades out toward the limb (see cloudMat): the rim
+//                   stays pure blue — no white clouds inside it, no black gap.
 // The planet's own rotation lives in the useFrame below (planetRef). Sphere collision lives in
 // game/physics/newton.ts (updatePlanetCollision). Geometry constants live in
 // game/core/world.ts (shared between the physics collision and this rendering).
@@ -29,13 +33,10 @@ const CLOUD_DRIFT_SPEED = 0.0006;
 // Tweak this value live (HMR) to taste.
 const PLANET_ROTATION_SPEED = 0.002;
 
-// GEOMETRIC relief on the continents: the albedo map doubles as a heightmap
-// (its green channel: dark oceans = low, bright land = high). The sphere's
-// vertices are displaced along their normals by displacementScale.
-// On a radius-30 planet, 0.5 ≈ 1.7% of relief — visible from low orbit.
-// NOTE: the collision sphere uses EARTH_SURFACE_MAX = RADIUS + RELIEF_SCALE (world.ts).
-const RELIEF_SCALE = 0.5;
-const RELIEF_BIAS = -0.12; // pushes oceans slightly below 0, keeps land positive
+// NO geometric displacement anymore: seen from space the landscape looks flat anyway,
+// so the sphere stays perfectly smooth — relief comes only from the normal map
+// (light/shadow) and the albedo (eternal snows). The collision sphere is exactly
+// EARTH.radius (world.ts: EARTH_SURFACE_MAX).
 
 export function Earth() {
   // Ref to the rotating surface group: the JSX below attaches the real THREE.Group
@@ -43,18 +44,24 @@ export function Earth() {
   const planetRef = useRef<THREE.Group>(null);
 
   const { map, normalMap, clouds } = useTexture({
-    map: "/textures/earth_atmos.jpg",
-    normalMap: "/textures/earth_normal.jpg",
-    clouds: "/textures/earth_clouds.png",
+    map: "/textures/earth_daymap_8k.jpg", // 8192x4096 — detailed enough for a bigger planet later
+    normalMap: "/textures/earth_normal.jpg", // 2K normal map: light/shadow relief only
+    clouds: "/textures/earth_clouds_8k.jpg", // 8192x4096, white clouds on black → used as alphaMap
   });
 
-  // Color textures must be sRGB; the normal map stays linear (default).
-  // Clouds need RepeatWrapping on S so the drift offset wraps seamlessly.
+  // The albedo is a color texture → sRGB. The normal map and the cloud map are DATA
+  // (the cloud JPG feeds alphaMap, sampled as a linear green channel) → stay linear (default).
+  // Equirectangular maps tile around the planet: ALL of them need wrapS = Repeat —
+  // with the default ClampToEdge, the u=0/u=1 seam becomes a vertical smear band
+  // (worst at low mip levels, i.e. seen from far). needsUpdate re-uploads the texture
+  // with the new wrap mode if it was already uploaded once.
   useEffect(() => {
     map.colorSpace = THREE.SRGBColorSpace;
-    clouds.colorSpace = THREE.SRGBColorSpace;
-    clouds.wrapS = THREE.RepeatWrapping;
-  }, [map, clouds]);
+    for (const tex of [map, normalMap, clouds]) {
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.needsUpdate = true;
+    }
+  }, [map, normalMap, clouds]);
 
   // Clouds drift slowly around the planet — the texture offset scrolls eastward.
   // (This is the clouds' own wind, on top of the planet's rotation below.)
@@ -73,10 +80,12 @@ export function Earth() {
   // saturates when the camera is close to / inside the shell and turns into a
   // hard-edged band). Here: θ_planet = asin(R_planet / D) is the planet's limb,
   // θ_shell = asin(R_shell / D) the shell's silhouette. t = (θ_shell − θ)/(θ_shell − θ_planet)
-  // is 1 at the planet's limb and 0 at the shell's edge → the glow PEAKS exactly
-  // on the planet's contour and fades PROGRESSIVELY outward, symmetric from any
-  // angle and at any distance (camera inside or outside the shell).
+  // is 1 at the planet's limb and 0 at the shell's edge → the glow PEAKS exactly on the
+  // planet's contour and fades PROGRESSIVELY outward (no black gap). The CLOUD layer gets
+  // the same θ: its alpha fades 1 → 0 between θ_planet and θ_cloud (cloud deck silhouette)
+  // → no white cloud inside the blue rim.
   const SHELL_SCALE = 1.10;
+  const CLOUD_SCALE = 1.005; // ~1 texture pixel above the smooth surface (0.15 u on radius 30) — clouds hug the ground and never reach the blue rim
   const atmosphereMat = useMemo(
     () =>
       new THREE.ShaderMaterial({
@@ -126,20 +135,89 @@ export function Earth() {
     []
   );
 
-  // Per frame: feed the shader the camera view matrix and the limb angles
+  // Per frame: feed the shaders the camera view matrix and the silhouette angles
   // (they depend on the camera↔planet distance D, which changes as the ship flies).
   useFrame(({ camera }) => {
     const D = camera.position.distanceTo(new THREE.Vector3(...POSITION));
     const R_shell = RADIUS * SHELL_SCALE;
+    const R_cloud = RADIUS * CLOUD_SCALE;
+    const thetaPlanet = Math.asin(Math.min(RADIUS / D, 1));
+    const thetaShell = D > R_shell ? Math.asin(Math.min(R_shell / D, 1)) : Math.PI;
+    const thetaCloud = D > R_cloud ? Math.asin(Math.min(R_cloud / D, 1)) : Math.PI;
     const u = atmosphereMat.uniforms;
     u.uViewMatrix.value.copy(camera.matrixWorld).invert();
-    u.uThetaPlanet.value = Math.asin(Math.min(RADIUS / D, 1));
-    u.uThetaShell.value = D > R_shell ? Math.asin(Math.min(R_shell / D, 1)) : Math.PI;
+    u.uThetaPlanet.value = thetaPlanet;
+    u.uThetaShell.value = thetaShell;
+    // same angles for the cloud limb fade (its uniforms exist after the first compile)
+    const cu = cloudShaderUniforms.current;
+    if (cu) {
+      cu.uViewMatrix.value.copy(camera.matrixWorld).invert();
+      cu.uThetaPlanet.value = thetaPlanet;
+      cu.uThetaCloud.value = thetaCloud;
+    }
   });
+
+  // Cloud material: the standard material plus a LIMB FADE injected into its shader.
+  // It uses the same view-ray angle θ as the atmosphere: cloud alpha goes from 1 on the
+  // planet disk to 0 at the cloud deck's silhouette (θ_cloud) — the clouds melt into the
+  // blue rim instead of showing white inside it.
+  const cloudShaderUniforms = useRef<Record<string, THREE.IUniform> | null>(null);
+  const cloudMat = useMemo(() => {
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0xffffff, // white clouds; the 8K cloud JPG (white on black) feeds the ALPHA channel
+      alphaMap: clouds,
+      transparent: true,
+      depthWrite: false,
+      opacity: 0.9,
+      roughness: 1,
+    });
+    mat.onBeforeCompile = (shader) => {
+      shader.uniforms.uViewMatrix = { value: new THREE.Matrix4() };
+      shader.uniforms.uPlanetPos = { value: new THREE.Vector3(...POSITION) };
+      shader.uniforms.uThetaPlanet = { value: 0.5 };
+      shader.uniforms.uThetaCloud = { value: 0.55 };
+      cloudShaderUniforms.current = shader.uniforms;
+      shader.vertexShader = shader.vertexShader
+        .replace(
+          "#include <common>",
+          `#include <common>
+          uniform mat4 uViewMatrix;
+          uniform vec3 uPlanetPos;
+          uniform float uThetaPlanet;
+          uniform float uThetaCloud;
+          varying vec3 vRayDir;
+          varying vec3 vCenterView;`
+        )
+        .replace(
+          "#include <begin_vertex>",
+          `#include <begin_vertex>
+          vec4 cloudViewPos = modelViewMatrix * vec4(position, 1.0); // view space (camera at origin) — computed here, no chunk dependency
+          vRayDir = cloudViewPos.xyz; // ray camera → vertex
+          vCenterView = (uViewMatrix * vec4(uPlanetPos, 1.0)).xyz;`
+        );
+      shader.fragmentShader = shader.fragmentShader
+        .replace(
+          "#include <common>",
+          `#include <common>
+          uniform float uThetaPlanet;
+          uniform float uThetaCloud;
+          varying vec3 vRayDir;
+          varying vec3 vCenterView;`
+        )
+        .replace(
+          "#include <map_fragment>",
+          `#include <map_fragment>
+          float thetaCloud = acos(clamp(dot(normalize(vRayDir), normalize(vCenterView)), -1.0, 1.0));
+          // clouds fade out from the planet's limb to the cloud deck's silhouette: no white in the blue rim
+          diffuseColor.a *= 1.0 - smoothstep(uThetaPlanet, uThetaCloud, thetaCloud);`
+        );
+    };
+    return mat;
+  }, [clouds]);
 
   return (
     <group position={POSITION}>
-      {/* 1 — the surface: textured sphere with REAL geometric relief (displacement),
+      {/* 1 — the surface: smooth textured sphere (normal map = light/shadow relief only),
             inside its rotating group (the planet's own spin) */}
       <group ref={planetRef}>
         <mesh>
@@ -148,19 +226,16 @@ export function Earth() {
             map={map}
             normalMap={normalMap}
             normalScale={[0.85, 0.85]}
-            displacementMap={map}
-            displacementScale={RELIEF_SCALE}
-            displacementBias={RELIEF_BIAS}
             roughness={0.85}
             metalness={0.0}
           />
         </mesh>
       </group>
 
-      {/* 2 — cloud layer: 2% above the surface (clears the relief), transparent, drifting */}
-      <mesh scale={1.02}>
+      {/* 2 — cloud layer: CLOUD_SCALE above the surface (~1 texture pixel), drifting, fading out at the limb via cloudMat */}
+      <mesh scale={CLOUD_SCALE}>
         <sphereGeometry args={[RADIUS, 64, 64]} />
-        <meshStandardMaterial map={clouds} transparent depthWrite={false} opacity={0.9} roughness={1} />
+        <primitive object={cloudMat} attach="material" />
       </mesh>
 
       {/* 3 — atmosphere: shell 10% larger, view-ray-angle shader → rim peaks at the planet's limb, fades progressively outward, symmetric at any distance */}

@@ -11,6 +11,6 @@ export const EARTH = {
 // Approximate radius of a ship for collision (the shift dart is ~3-4 units long).
 export const SHIP_COLLISION_RADIUS = 1.5;
 
-// The planet's surface is displaced (continents rise up to ~RELIEF_SCALE beyond
-// EARTH.radius), so the collision sphere uses EARTH.radius + 0.5.
-export const EARTH_SURFACE_MAX = EARTH.radius + 0.5;
+// The surface is a perfectly smooth sphere (relief is normal-map only, no geometric
+// displacement), so the collision sphere is exactly EARTH.radius.
+export const EARTH_SURFACE_MAX = EARTH.radius;

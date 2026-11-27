@@ -1174,3 +1174,27 @@ Vérifié : `tsc` propre ; `/play` → 200 ; chunk contient `displacementScale`/
 **Prochaine étape** : playtest `/play` (rotation de la planète visible, looping 8/5 propre même après un yaw), push par Thierry, puis champ d'étoiles infini (`Stars.tsx`), puis traduction en anglais des commentaires de la collision.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-27 — Session 27 : Terre lisse + textures 8K + nuages au ras du sol (liseret bleu pur), fix shader cloud three r187
+
+**Fait** : `Earth.tsx` — plus de déplacement géométrique (`displacementMap`/`RELIEF_SCALE`/`RELIEF_BIAS` supprimés) : la sphère reste parfaitement lisse, le relief n'est plus que normal map (ombres/éclairage) + albédo (neiges éternelles) ; textures 8K téléchargées depuis Wikimedia Commons (SolarSystemScope, 8192×4096 : `earth_daymap_8k.jpg`, `earth_clouds_8k.jpg` utilisée en `alphaMap` canal vert) pour pouvoir grossir la planète plus tard tout en restant jolie ; `CLOUD_SCALE` 1.02 → **1.005** (~1 pixel de texture au-dessus du sol → les nuages ne rentrent plus dans le liseret) ; le fondu de limbe des nuages (`cloudMat`) est conservé. Fix du bug « nuages invisibles » : dans three r187 `begin_vertex` ne déclare plus `mvPosition`, l'injection shader plantait à la compilation → on calcule soi-même `cloudViewPos = modelViewMatrix * vec4(position, 1.0)` (vérifié hors ligne en assemblant les vrais shaders r187). `world.ts` : `EARTH_SURFACE_MAX = EARTH.radius` ; `newton.ts` : commentaire 31.5 ; `ARCHITECTURE.md` §collision synchronisé (règle 8). Vérifié : `tsc --noEmit` propre hors préexistant (Terre2065/tempVaisseaux) ; collision headless 3/3 OK avec la nouvelle sphère de contact 31.5 (frontal : posé à 31.500000, v=0 ; oblique : jamais sous 31.5, aucune énergie ajoutée ; ram 10 s à fond : collé à 31.5, pas de NaN).
+
+**Appris / incidents** : three r187 — `mvPosition` n'existe qu'après `#include <project_vertex>` ; ne jamais s'ancrer sur les chunks internes pour injecter du GLSL, calculer depuis `position`/`modelViewMatrix` directement. La carte de nuages 8K est un JPG (pas d'alpha) → servie en `alphaMap` (canal vert), et elle reste en linear (pas sRGB). Poids des 8K : 4,5 Mo + 11,6 Mo (OK en local).
+
+**Prochaine étape** : playtest visuel sur `/play` (Terre lisse et détaillée, nuages nets au ras du sol, liseret bleu continu sans blanc ni bande noire), puis commit + push par Thierry. Ensuite au choix : grossir la planète (possible maintenant grâce aux 8K), champ d'étoiles infini (`Stars.tsx`), traduction EN des commentaires de collision dans `newton.ts`.
+
+**Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-27 — Session 27 (suite) : fix de la bande verticale à la couture des textures — wrapS Repeat sur les 3 textures
+
+**Fait** : `Earth.tsx` — la bande verticale de traits blancs sur toute la hauteur du globe était la couture u=0/u=1 des textures équirectangulaires : wrap par défaut `ClampToEdge` (le bord est aplati au lieu de boucler), amplifié par les mipmaps vus de loin. Les 3 textures (`map`, `normalMap`, `clouds`) passent en `wrapS = THREE.RepeatWrapping` avec `needsUpdate = true` (le `wrapS` posé avant sur les nuages n'avait jamais été ré-uploadé, donc jamais actif). Vérifié : `tsc --noEmit` propre hors préexistant.
+
+**Appris / incidents** : dans three.js, modifier `texture.wrapS` après le premier upload GPU ne change rien sans `texture.needsUpdate = true`.
+
+**Prochaine étape** : playtest visuel sur `/play` (plus de bande à la couture ; possiblement une fine ligne de raccord si les bords de l'image 8K ne se matchent pas au pixel près), puis commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.
