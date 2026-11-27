@@ -30,16 +30,19 @@ export default function Scene() {
     // the canvas to the viewport (its parent has no definite height).
     // camera far 5000: the star shell lives at 800..900 (Stars.tsx) and must never be depth-culled.
     <Canvas camera={{ far: 5000 }} style={{ width: "100vw", height: "100vh" }}>
-      <GameLoop /> {/* the world advances before the mirrors read it */}
-      <CameraRig /> {/* follows the player ship */}
-      {/* <OrbitControls /> Debug tool kept commented out — binds the mouse to the camera (orbit/zoom/pan) */}
-      <Space />
-      <Sun />
-      <Suspense fallback={null}>{/* Earth loads its NASA textures (suspense) */}
+      {/* ONE Suspense around the WHOLE scene: Earth's 8K textures suspend it, so nothing
+          renders until they are ready — the whole scene then appears at once, instead of
+          the planet popping in 1s after stars/sun/ship. fallback=null → black while loading. */}
+      <Suspense fallback={null}>
+        <GameLoop /> {/* the world advances before the mirrors read it */}
+        <CameraRig /> {/* follows the player ship */}
+        {/* <OrbitControls /> Debug tool kept commented out — binds the mouse to the camera (orbit/zoom/pan) */}
+        <Space />
+        <Sun />
         <Earth />
+        <ShipEnv /> {/* the shared light studio from the thruster kit: gives the metal hulls their reflections */}
+        <Entities />
       </Suspense>
-      <ShipEnv /> {/* the shared light studio from the thruster kit: gives the metal hulls their reflections */}
-      <Entities />
     </Canvas>
   );
 }

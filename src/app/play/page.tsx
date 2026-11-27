@@ -7,5 +7,12 @@ const Scene = dynamic(() => import("@/components/game/Scene"), {
 });
 
 export default function Page() {
-  return <Scene />;
+  // Black behind the scene: while the Suspense fallback (null) shows during texture
+  // loading, the Canvas is not mounted yet — the page background must be black, not
+  // the default white body.
+  return (
+    <div className="bg-black">
+      <Scene />
+    </div>
+  );
 }
