@@ -48,9 +48,9 @@ export function Sun() {
       g.addColorStop(0, "rgba(255, 255, 252, 0.75)");
       g.addColorStop(0.15, "rgba(250, 250, 246, 0.45)");
       g.addColorStop(0.35, "rgba(242, 246, 252, 0.22)");
-      g.addColorStop(0.6, "rgba(238, 242, 250, 0.08)");
-      g.addColorStop(0.85, "rgba(235, 240, 250, 0.02)");
-      g.addColorStop(0.95, "rgba(235, 240, 250, 0.008)");
+      g.addColorStop(0.6, "rgba(238, 242, 250, 0.06)");
+      g.addColorStop(0.85, "rgba(235, 240, 250, 0.01)");
+      g.addColorStop(0.95, "rgba(235, 240, 250, 0.003)");
       g.addColorStop(1, "rgba(235, 240, 250, 0)");
       hctx.fillStyle = g;
       hctx.fillRect(0, 0, size, size);
@@ -65,8 +65,8 @@ export function Sun() {
       g.addColorStop(0, "rgba(235, 240, 252, 0.26)");
       g.addColorStop(0.3, "rgba(232, 239, 250, 0.13)");
       g.addColorStop(0.6, "rgba(228, 236, 249, 0.05)");
-      g.addColorStop(0.85, "rgba(225, 235, 250, 0.015)");
-      g.addColorStop(0.95, "rgba(225, 235, 250, 0.006)");
+      g.addColorStop(0.85, "rgba(225, 235, 250, 0.01)");
+      g.addColorStop(0.95, "rgba(225, 235, 250, 0.003)");
       g.addColorStop(1, "rgba(225, 235, 250, 0)");
       octx.fillStyle = g;
       octx.fillRect(0, 0, size, size);
@@ -91,13 +91,15 @@ export function Sun() {
         { angle: (5 * Math.PI) / 4, length: size * 0.24, width: 0.75, alpha: 0.34 },
         { angle: (7 * Math.PI) / 4, length: size * 0.19, width: 0.6, alpha: 0.26 },
       ];
-      // 16 minor spikes between the main directions, short and faint.
-      for (let i = 0; i < 16; i++) {
+      // 24 minor spikes between the main directions. Angle/length/width/alpha all vary
+      // with a different pseudo-random pattern per field, so they don't look regular.
+      for (let i = 0; i < 24; i++) {
+        const angleJitter = (((i * 37) % 11) - 5) * 0.02; // ±0.1 rad around the base angle
         spikes.push({
-          angle: (i + 0.5) * (Math.PI / 8),
-          length: size * (0.08 + 0.025 * ((i * 7) % 4)),
-          width: 0.5,
-          alpha: 0.1 + 0.04 * ((i * 5) % 3),
+          angle: (i + 0.5) * (Math.PI / 12) + angleJitter,
+          length: size * (0.06 + 0.02 * ((i * 7) % 6)),
+          width: 0.4 + 0.05 * ((i * 11) % 9),
+          alpha: 0.16 + 0.03 * ((i * 5) % 4),
         });
       }
       for (const spike of spikes) {
@@ -142,7 +144,7 @@ export function Sun() {
       // 0 at ~20 degrees off-center, 1 within ~6 degrees: wide smooth cone around the sun.
       const facingSun = THREE.MathUtils.smoothstep(cosAngle, 0.94, 0.995);
       const pulse = 0.5 + 0.5 * Math.sin(state.clock.elapsedTime * 0.4); // slow, ~15 s period
-      (raysRef.current.material as THREE.SpriteMaterial).opacity = facingSun * (0.1 + 0.35 * pulse);
+      (raysRef.current.material as THREE.SpriteMaterial).opacity = facingSun * (0.15 + 0.5 * pulse);
     }
   });
 
@@ -156,11 +158,11 @@ export function Sun() {
       <group ref={groupRef}>
         <group position={sunPos}>
           {/* big diffuse outer halo behind everything (sprites always face the camera) */}
-          <sprite renderOrder={0} scale={[1100, 1100, 1]}>
+          <sprite renderOrder={0} scale={[1430, 1430, 1]}>
             <spriteMaterial map={outerHaloTexture} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
           </sprite>
           {/* central halo, wider and softer than before */}
-          <sprite renderOrder={1} scale={[300, 300, 1]}>
+          <sprite renderOrder={1} scale={[390, 390, 1]}>
             <spriteMaterial map={haloTexture} transparent depthWrite={false} blending={THREE.AdditiveBlending} />
           </sprite>
           {/* the rays flare, pulsing slowly (opacity animated in useFrame) */}
@@ -168,7 +170,7 @@ export function Sun() {
             <spriteMaterial map={raysTexture} transparent depthWrite={false} blending={THREE.AdditiveBlending} opacity={0.2} />
           </sprite>
           {/* the dazzling disk — toneMapped=false so it renders at full brightness */}
-          <sprite renderOrder={3} scale={[44, 44, 1]}>
+          <sprite renderOrder={3} scale={[57, 57, 1]}>
             <spriteMaterial map={diskTexture} toneMapped={false} depthWrite={false} />
           </sprite>
         </group>
