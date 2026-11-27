@@ -1282,3 +1282,15 @@ Vérifié : `tsc` propre ; `/play` → 200 ; chunk contient `displacementScale`/
 **Prochaine étape** : playtest sur `/play` (étoiles discrètes, rotations propres), puis commit + push par Thierry. Ensuite : la traduction EN des commentaires de `updatePlanetCollision` dans `newton.ts`, ou l'idée ci-dessus si on la lance.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-27 — Session 27 (suite 8) : fix liseret à épaisseur variable en proche rotation Y — plafond RIM_ANGLE
+
+**Fait** : `Earth.tsx` — cause : quand la caméra est proche/de dans la coquille (D < R_shell = 99), le code mettait `uThetaShell = π` → le glow s'étalait sur tout le ciel et le bord polygonal de la coquille (64×64) apparaissait comme une ligne dure ; en tournant en Y près de la planète, D oscille autour de 99 → le liseret changeait d'épaisseur selon l'angle. Fix : nouvelle constante `RIM_ANGLE = 0.25` rad (~14°) et `u.uThetaShell.value = Math.min(thetaShell, thetaPlanet + RIM_ANGLE)` — le liseret garde une largeur angulaire constante, l'intensité tombe à 0 avant la silhouette de la coquille (plus de bord dur), à toute distance. Loin, le min garde la bande naturelle (plus fine). Vérifié : `tsc --noEmit` propre hors préexistant.
+
+**Appris / incidents** : une bande « angle du rayon de vue » n'a de largeur constante que si on la cappe — sinon près de la sphère elle diverge (θ_shell → π). Le bord dur venait de la silhouette polygonale de la coquille vue rasante, avec une intensité non nulle au bord.
+
+**Prochaine étape** : playtest sur `/play` proche de la planète en tournant en Y : liseret d'épaisseur constante, sans ligne dure. Ajuster `RIM_ANGLE` à chaud si besoin. Puis commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.

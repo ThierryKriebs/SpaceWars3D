@@ -90,6 +90,11 @@ export function Earth() {
   // planet's contour and fades PROGRESSIVELY outward (no black gap). The CLOUD layer gets
   // the same θ: its alpha fades 1 → 0 between θ_planet and θ_cloud (cloud deck silhouette)
   // → no white cloud inside the blue rim.
+  // RIM_ANGLE caps the rim's angular width: when the camera is close to / inside the shell,
+  // θ_shell would be π and the glow would balloon over the whole sky (and show the shell's
+  // polygonal edge as a hard line) — the cap keeps a constant thin band and intensity is 0
+  // before the mesh silhouette, so no hard edge at any distance or angle.
+  const RIM_ANGLE = 0.25; // rad — max angular width of the blue rim (~14°)
   const SHELL_SCALE = 1.10;
   const CLOUD_HEIGHT = 0.15; // units above the smooth surface (~a few 8K texture pixels), independent of the planet radius
   const CLOUD_SCALE = 1 + CLOUD_HEIGHT / RADIUS; // clouds hug the ground and never reach the blue rim
@@ -154,7 +159,7 @@ export function Earth() {
     const u = atmosphereMat.uniforms;
     u.uViewMatrix.value.copy(camera.matrixWorld).invert();
     u.uThetaPlanet.value = thetaPlanet;
-    u.uThetaShell.value = thetaShell;
+    u.uThetaShell.value = Math.min(thetaShell, thetaPlanet + RIM_ANGLE); // cap the rim width (see RIM_ANGLE)
     // same angles for the cloud limb fade (its uniforms exist after the first compile)
     const cu = cloudShaderUniforms.current;
     if (cu) {
