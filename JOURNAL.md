@@ -1342,3 +1342,15 @@ Vérifié : `tsc` propre ; `/play` → 200 ; chunk contient `displacementScale`/
 **Prochaine étape** : commit + push par Thierry (`PlasmaGlow.tsx` + ce journal, sur `afcd248`). Puis MISSION 1 : vaisseau pilotable, physique newtonienne (voir VISION.md et le plan de la session du 7 nov.).
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-28 — Session 28 (suite 2) : physique du plasma (frottement atmosphérique), traductions EN, doc ARCHITECTURE, liste d'idées
+
+**Fait** : `world.ts` ajoute `ATMOSPHERE_DRAG = 0.8` (1/s) ; `newton.ts` ajoute `updateAtmosphericDrag(ship, dt)`, appelée en DERNIER dans le hub `updateShips` : decay linéaire de `velocity` ET `angularVelocity` (facteur `1 - ATMOSPHERE_DRAG * planetProximity * dt`) — la même bande que le plasma (`planetProximity`) freine le vaisseau ; hors atmosphère (proximity = 0) facteur = 1, la rotation reste purement inertielle (décision du 15 nov. non violée). Commentaires français de `updatePlanetCollision` traduits en anglais (règle 5 — dette du 26 nov. soldée ; commentaires seuls, aucun code touché). `ARCHITECTURE.md` : 3 ajouts cohérents sur le plasma (ligne `effects/` de l'arbre, ligne du tableau « Où va quoi », paragraphe dans la section `state.ts` avec la chaîne d'appel `Entities.tsx → <ShipMirror> → <PlasmaGlow ship={ship}>`, communication à sens unique). `IDEES.md` : liste de Thierry du 28 nov. classée selon l'ordre retenu (rapide / moyen / gros) + « tourner avec la souris (bouton enfoncé) » classé en rapide (futur `controls/mouse.ts`). `tsc --noEmit` propre hors préexistant, `/play` → 200.
+
+**Appris / incidents** : rien de cassé. Un frottement linéaire sur tout le vecteur vitesse ne dévie jamais la trajectoire (la friction s'oppose au mouvement, elle ne le dévie pas) ; un seul réglage `ATMOSPHERE_DRAG` pour translation + rotation — à scinder en deux constantes dans `world.ts` si le playtest montre que le spin doit se régler séparément.
+
+**Prochaine étape** : commit + push par Thierry (ce journal). Puis premier pas de la liste IDEES.md : écran d'accueil + bouton Jouer → sous-menu (Campagne à venir / Options = voir les touches / Vol libre → `/play`), suivant l'arbre acté (`app/page.tsx` vitrine + `components/ui/menus/`).
+
+**Règle du projet** : une session = une victoire.
