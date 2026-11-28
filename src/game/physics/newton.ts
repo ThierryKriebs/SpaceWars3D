@@ -19,7 +19,7 @@ import { ATMOSPHERE_DRAG, EARTH, EARTH_SURFACE_MAX, PLASMA_OUTER_DISTANCE, SHIP_
 //   updateTranslation(ship, dt)   axes → thrust → locks → velocity → brakes → speed cap → position (+ visualThrust)
 //   updateRotation(ship, dt)      turn demands → locks → angularVelocity → spin brake → rotation (+ visualRotation)
 //   updatePlanetCollision(ship)     planet contact, AFTER all movement: position/velocity/rotation are final
-//   updateAtmosphericDrag(ship, dt)  atmospheric friction on velocity, scaled by planetProximity (28 nov. 2026)
+//   updateAtmosphericDrag(ship, dt)  atmospheric friction on velocity + spin, scaled by planetProximity (28 nov. 2026)
 // Only updateShips is exported: loop.ts still calls updateShips(STEP), and position is
 // still written only here, in this module.
 export function updateShips(dt: number): void {
@@ -441,11 +441,16 @@ function updatePlanetCollision(ship: ShipSheet): void {
 
 // Atmospheric drag — the physics of the reentry plasma: the same band that glows
 // (ship.planetProximity, written just above by updatePlanetCollision) brakes the ship.
-// Linear decay of the WHOLE velocity vector: friction opposes the motion, it never
-// deviates it. Rotation is untouched. Called AFTER the collision, proximity is fresh.
+// Linear decay of the WHOLE velocity vector AND the whole spin: friction opposes the
+// motion, it never deviates it. Outside the atmosphere (proximity = 0) drag = 1: nothing
+// changes, rotation stays purely inertial in space (decision of 15 nov. 2026).
+// Called AFTER the collision, proximity is fresh.
 function updateAtmosphericDrag(ship: ShipSheet, dt: number): void {
   const drag = 1 - ATMOSPHERE_DRAG * ship.planetProximity * dt;
   ship.velocity.x *= drag;
   ship.velocity.y *= drag;
   ship.velocity.z *= drag;
+  ship.angularVelocity.x *= drag;
+  ship.angularVelocity.y *= drag;
+  ship.angularVelocity.z *= drag;
 }
