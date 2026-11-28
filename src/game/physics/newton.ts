@@ -384,44 +384,42 @@ function updateRotation(ship: ShipSheet, dt: number): void {
 
 // ── Planet collision (sphere vs sphere) — called LAST by the hub, after ALL movement ──
 function updatePlanetCollision(ship: ShipSheet): void {
-  // ── COLLISION PLANÈTE (commentaires temporaires en français — à traduire en
-  // anglais ensuite, règle 5). Appelée en DERNIER par le hub : position, velocity
-  // et rotation sont toutes à jour à ce point.
+  // ── PLANET COLLISION — called LAST by the hub: position, velocity and rotation are all final at this point.
 
-  // Distances SIGNÉES sur chaque axe du monde : position - position = une distance
-  // sur l'axe (signe + = côté positif de l'axe). En UNITÉS de jeu, pas des proportions.
+  // SIGNED distances on each world axis: position - position = a distance along that axis
+  // (sign + = positive side of the axis). In GAME UNITS, not proportions.
   const signedDistanceToPlanetCenterX = ship.position.x - EARTH.position.x;
   const signedDistanceToPlanetCenterY = ship.position.y - EARTH.position.y;
   const signedDistanceToPlanetCenterZ = ship.position.z - EARTH.position.z;
 
-  // Calcul de la distance entre le centre de la planète et le centre du vaisseau
-  // 1e-6 => un petit nombre, évite la division par 0).
+  // Distance between the planet center and the ship center.
+  // 1e-6 = a tiny floor, avoids division by zero.
   const actualDistanceFromPlanetCenter = Math.max(
     Math.hypot(signedDistanceToPlanetCenterX, signedDistanceToPlanetCenterY, signedDistanceToPlanetCenterZ),
     1e-6
   );
 
-  // Calcul de la distance min avant collision entre la sphère de collision du vaisseau et celle de la planète:
+  // Minimum distance before collision between the ship's collision sphere and the planet's:
   const touchingDistance = EARTH_SURFACE_MAX + SHIP_COLLISION_RADIUS; // 90 + 1.5 = 91.5
 
-  // Si collision => Repousse le vaisseau + annulation de sa vitesse
+  // If collision => push the ship out + cancel its inward velocity
   if (actualDistanceFromPlanetCenter < touchingDistance) {
     
-    // Les PROPORTIONS centre planète → vaisseau : chaque distance signée ÷ distance → entre −1 et +1 sur chaque axe (X²+Y²+Z² = 1).
+    // PROPORTIONS planet center → ship: each signed distance ÷ distance → between −1 and +1 on each axis (X²+Y²+Z² = 1).
     const proportionToPlanetCenterX = signedDistanceToPlanetCenterX / actualDistanceFromPlanetCenter;
     const proportionToPlanetCenterY = signedDistanceToPlanetCenterY / actualDistanceFromPlanetCenter;
     const proportionToPlanetCenterZ = signedDistanceToPlanetCenterZ / actualDistanceFromPlanetCenter;
 
-    // 1) Repousser le vaisseau : centre de la planète + proportions × distance de contact.
+    // 1) Push the ship out: planet center + proportions × touching distance.
     ship.position.x = EARTH.position.x + proportionToPlanetCenterX * touchingDistance;
     ship.position.y = EARTH.position.y + proportionToPlanetCenterY * touchingDistance;
     ship.position.z = EARTH.position.z + proportionToPlanetCenterZ * touchingDistance;
 
-    // 2) Annuler le mouvement qui rentre dans la planète, but: Glisser le long de la planète pour peu qu'on arrive un peu de biais
-    //    Si velocityAlongPlanetToShipDirection est négatif => On fonce sur la planète.
-    //      On soustrait cette part de la velocity, répartie sur x/y/z selon les proportions.
-    //      Le reste (le mouvement le long de la surface) est gardé → glissade.
-    //    Si v·proportions ≥ 0 (on s'éloigne déjà) : rien à enlever.
+    // 2) Cancel the motion INTO the planet, goal: slide along the planet when arriving slightly off-axis.
+    //    If velocityAlongPlanetToShipDirection is negative => we are heading into the planet.
+    //      Subtract that part of the velocity, split on x/y/z along the proportions.
+    //      The rest (motion along the surface) is kept → slide.
+    //    If v·proportions ≥ 0 (already moving away): nothing to remove.
     const velocityAlongPlanetToShipDirection =
       ship.velocity.x * proportionToPlanetCenterX +
       ship.velocity.y * proportionToPlanetCenterY +
