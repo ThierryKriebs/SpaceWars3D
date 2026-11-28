@@ -158,7 +158,9 @@ src/
 │       │   │   └── Torpedo.tsx      # ex. : torpille anti-module
 │       │   └── props/           # stations, astéroïdes, conteneurs, épaves
 │       │       └── Container.tsx    # ex. : conteneur de fret (décor inerte)
-│       ├── effects/             # explosions, traînées, débris (le visuel de la destruction)
+│       ├── effects/             # explosions, traînées, débris, plasma de rentrée — PlasmaGlow.tsx y vit :
+│                                 #   monté par le miroir de l'entité (Entities.tsx → <PlasmaGlow ship={ship}>),
+│                                 #   il LIT la fiche (planetProximity) et ne calcule aucun gameplay
 │       └── environment/          # LE FOND DU MONDE — décor et éclairage (3 exemples)
 │           ├── Earth.tsx         # la planète : sphère + textures + nuages animés (un fichier, une technique)
 │           ├── Space/            # LE FOND SPATIAL — un répertoire, une porte, quatre couches
@@ -441,6 +443,8 @@ useFrame(() => {
 La chaîne, toujours la même phrase :
 
 > Le loop réveille les acteurs ; les acteurs écrivent dans la photo ; le miroir recopie ; r3f peint.
+
+**Un effet visuel piloté par la photo — le plasma de rentrée (ajout du 28 nov. 2026).** `components/game/effects/PlasmaGlow.tsx` est monté par le miroir de l'entité : `Entities.tsx` → `<ShipMirror>` → `<PlasmaGlow ship={ship} />`, placé dans le `<group>` 3D du vaisseau (il hérite donc de son transform). Communication à **sens unique** : `newton.ts` (`updatePlanetCollision`) écrit `ship.planetProximity` (0..1 — 0 à `PLASMA_OUTER_DISTANCE`, 1 au contact ; constantes de `game/core/world.ts`) ; le `useFrame` de PlasmaGlow lit cette fiche et `ship.position` et les pousse dans les uniforms de ses shaders ; son `useEffect` ajoute les maillages jumeaux (halo + peau) dans le groupe du vaisseau, sans jamais toucher aux matériaux de la coque. Jamais l'inverse : un composant de `components/game/` ne calcule aucun gameplay (règle de circulation n°2).
 
 ---
 
@@ -1090,6 +1094,7 @@ Les missions autour du Soleil (preset `near`) **ne changent rien à l'organisati
 | Un élément en jeu (radar, réticule, vitesse, flèches) | `components/ui/hud/` |
 | Une maquette 3D (vaisseau, missile, station, épave) | `components/game/models/` — réutilisable par toute faction |
 | Afficher les entités vivantes (le miroir : recopier la photo vers three.js) | `components/game/Entities.tsx` — un miroir par espèce, jamais par objet |
+| Un effet visuel piloté par une propriété de la photo (plasma de rentrée) | `components/game/effects/` — monté par le miroir de l'entité (`<PlasmaGlow ship={ship}>` dans `Entities.tsx`), lit la fiche, aucun calcul de gameplay |
 | Un acteur logique (joueur, PNJ, projectile, accessoire) | `game/entities/` — référence un modèle |
 | Un comportement d'arme (guidage, balistique) | `game/weapons/` (code) ; la variante précise = réglages JSON — l'arme n'a pas de fiche ; le projectile qu'elle crée, si |
 | Un rôle d'objet (tourelle, patrouilleur) | `game/levels/roles/` (ex-brains/), référencé par le JSON du niveau |
