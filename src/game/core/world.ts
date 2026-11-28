@@ -19,3 +19,8 @@ export const EARTH_SURFACE_MAX = EARTH.radius;
 // (10 units above the surface) and reaches full intensity at surface contact
 // (EARTH_SURFACE_MAX + SHIP_COLLISION_RADIUS = 91.5).
 export const PLASMA_OUTER_DISTANCE = EARTH.radius + 10; // 100 — plasma starts 10 units above the surface (at spawn the proximity is 0)
+
+// Atmospheric drag (the physics of the reentry plasma): inside the same band
+// (distance < PLASMA_OUTER_DISTANCE), the ship is braked at this rate per second,
+// scaled by planetProximity (0 at the outer edge, 1 at surface contact).
+export const ATMOSPHERE_DRAG = 0.8; // 1/s — tune here

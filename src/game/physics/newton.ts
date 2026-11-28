@@ -1,6 +1,6 @@
 import { state } from "../core/state";
 import type { ShipSheet } from "@/types";
-import { EARTH, EARTH_SURFACE_MAX, PLASMA_OUTER_DISTANCE, SHIP_COLLISION_RADIUS } from "../core/world";
+import { ATMOSPHERE_DRAG, EARTH, EARTH_SURFACE_MAX, PLASMA_OUTER_DISTANCE, SHIP_COLLISION_RADIUS } from "../core/world";
 
 // newton.ts — THE integrator: intentions become movement.
 // It is the ONLY module in the whole game allowed to write `position`.
@@ -15,10 +15,11 @@ import { EARTH, EARTH_SURFACE_MAX, PLASMA_OUTER_DISTANCE, SHIP_COLLISION_RADIUS 
 //   (nose, right wing, roof), before rotation to world: velocity += R · shipLocalThrust × dt.
 //
 // STRUCTURE (24 nov. 2026) — one hub + one function per concern, all in THIS file (no helper file):
-//   updateShips(dt)                  the hub: for each ship, calls the three steps IN THIS ORDER
+//   updateShips(dt)                  the hub: for each ship, calls the steps IN THIS ORDER
 //   updateTranslation(ship, dt)   axes → thrust → locks → velocity → brakes → speed cap → position (+ visualThrust)
 //   updateRotation(ship, dt)      turn demands → locks → angularVelocity → spin brake → rotation (+ visualRotation)
 //   updatePlanetCollision(ship)     planet contact, AFTER all movement: position/velocity/rotation are final
+//   updateAtmosphericDrag(ship, dt)  atmospheric friction on velocity, scaled by planetProximity (28 nov. 2026)
 // Only updateShips is exported: loop.ts still calls updateShips(STEP), and position is
 // still written only here, in this module.
 export function updateShips(dt: number): void {
@@ -26,6 +27,7 @@ export function updateShips(dt: number): void {
     updateTranslation(ship, dt);
     updateRotation(ship, dt);
     updatePlanetCollision(ship);
+    updateAtmosphericDrag(ship, dt);
   }
 }
 
@@ -435,4 +437,15 @@ function updatePlanetCollision(ship: ShipSheet): void {
   // 0 at PLASMA_OUTER_DISTANCE and beyond, 1 at surface contact.
   const plasmaProximity = (PLASMA_OUTER_DISTANCE - actualDistanceFromPlanetCenter) / (PLASMA_OUTER_DISTANCE - touchingDistance);
   ship.planetProximity = Math.min(Math.max(plasmaProximity, 0), 1);
+}
+
+// Atmospheric drag — the physics of the reentry plasma: the same band that glows
+// (ship.planetProximity, written just above by updatePlanetCollision) brakes the ship.
+// Linear decay of the WHOLE velocity vector: friction opposes the motion, it never
+// deviates it. Rotation is untouched. Called AFTER the collision, proximity is fresh.
+function updateAtmosphericDrag(ship: ShipSheet, dt: number): void {
+  const drag = 1 - ATMOSPHERE_DRAG * ship.planetProximity * dt;
+  ship.velocity.x *= drag;
+  ship.velocity.y *= drag;
+  ship.velocity.z *= drag;
 }
