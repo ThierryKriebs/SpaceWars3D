@@ -15,8 +15,8 @@ const KEYMAP: Record<string, keyof InputIntent> = {
   KeyD: "strafeRight",        // (AZERTY: D)             Translation to Axis +X
   ShiftLeft: "liftUp",        // (AZERTY: Maj gauche)    Translation to Axis +Y
   ControlLeft: "liftDown",    // (AZERTY: Ctrl gauche)   Translation to Axis -Y
-  Space: "stopAllTranslation",// (AZERTY: space)         Auto-brake, stop only all Translation
-  AltLeft: "stopAllRotation", // (AZERTY: Alt gauche)    Auto-brake, stop only all Rotation
+  KeyE: "stopAllTranslation",  // (AZERTY: E)             Auto-brake, stop only all Translation (remapped 28 nov. 2026, was Space)
+  Numpad7: "stopAllRotation",  // (AZERTY: 7, numpad)     Auto-brake, stop only all Rotation (remapped 28 nov. 2026, was AltLeft)
   Numpad8: "pitchDown",       // (AZERTY: 8, numpad)     Rotation around -X
   Numpad5: "pitchUp",         // (AZERTY: 5, numpad)     Rotation around +X
   Numpad4: "yawLeft",         // (AZERTY: 4, numpad)     Rotation around +Y
@@ -28,14 +28,14 @@ const KEYMAP: Record<string, keyof InputIntent> = {
 function applyKey(e: KeyboardEvent, value: number): void {
   const action = KEYMAP[e.code];
   if (action) {
-    // preventDefault on keydown: stops Alt from handing focus to the browser
-    // menu — its keyup would then never reach the page (action stuck at 1).
+    // preventDefault on keydown: blocks the browser default (menu focus, page
+    // scroll) so the keyup always reaches the page (no action stuck at 1).
     if (value === 1) e.preventDefault();
     state.input[action] = value;
   }
 }
 
-// Safety net: any keyup the page never receives (Alt, Cmd, Alt+Tab, focus lost
+// Safety net: any keyup the page never receives (Cmd, Alt+Tab, focus lost
 // while a key is held) is cleared here, when the window loses focus.
 function resetInputs(): void {
   for (const action of Object.keys(state.input) as (keyof InputIntent)[]) {
