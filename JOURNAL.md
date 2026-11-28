@@ -1330,3 +1330,15 @@ Vérifié : `tsc` propre ; `/play` → 200 ; chunk contient `displacementScale`/
 **Prochaine étape** : demain — calculer les ZONES DE CONTACT réelles (distance au sol par sommet/point de la coque, pas seulement la direction) pour n'allumer le blanc QUE là où la coque touche/est au plus près de la planète ; blanc moins visible, rose plus présent et plus estompé ; bords du halo encore plus progressifs. Retirer le `console.log` temporaire de PlasmaGlow. Puis commit + push par Thierry.
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-28 — Session 28 : plasma de rentrée atmosphérique — version finale validée
+
+**Fait** : `src/components/game/effects/PlasmaGlow.tsx` — halo = 16 maillages jumeaux par coque (scale 1.50..3.16, alpha décroissant, additif, `depthWrite:false`) + peau chaude (scale 1.03) blanche au vrai contact ; côté planète calculé par DISTANCES pures au centre de la planète (`toPlanetSide = clamp(0.5 + (distShipToCenter - distFragmentToCenter)*0.5, 0, 1)`) — robuste vaisseau retourné ; intensité plafonnée à `min(proximity, 0.8)` au contact ; voile côté espace réduit à 0.02 (le plasma ne se lit plus que côté planète). `console.log` TEMP retiré. `world.ts:21` : `PLASMA_OUTER_DISTANCE = EARTH.radius + 10` (=100). Validé visuellement par Thierry (« l'effet me va, on laisse comme ça »). `tsc --noEmit` propre hors préexistant, `/play` → 200.
+
+**Appris / incidents** : ne JAMAIS patcher les matériaux du vaisseau (onBeforeCompile) — si le programme shader échoue, three ne dessine plus le mesh (« vaisseau invisible ») : tout passe par des maillages jumeaux. `AdditiveBlending` ne s'applique que dans la liste transparent (`transparent:true`), sinon disque sombre. Un voile même faible (0.08) s'additionne sur 16 couches additives et devient un cône rouge visible. `pow(x, 0.5)` sur x négatif (arrondi float) = NaN = pixels noirs → toujours `clamp` avant `pow`.
+
+**Prochaine étape** : commit + push par Thierry (`PlasmaGlow.tsx` + ce journal, sur `afcd248`). Puis MISSION 1 : vaisseau pilotable, physique newtonienne (voir VISION.md et le plan de la session du 7 nov.).
+
+**Règle du projet** : une session = une victoire.

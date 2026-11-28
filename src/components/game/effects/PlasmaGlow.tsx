@@ -135,10 +135,11 @@ export function PlasmaGlow({ ship }: { ship: ShipSheet }) {
           // (uPlasmaIntensity ~ 1 only at surface contact) — capped at 80%, pink dominates.
           float whiteHeat = pow(rim, 0.5) * planetSide * pow(uPlasmaIntensity, 3.0);
           vec3 color = mix(vec3(0.8, 0.06, 0.02), vec3(1.0, 0.98, 0.9), whiteHeat * 0.8);
-          // Layered alpha: faint veil all around (0.08) + strong on the planet side (0.92) —
-          // planet-side only was invisible from the far side; 0.18 veiled the top pinkish.
+          // Layered alpha: whisper of veil all around (0.02) + strong on the planet side (0.98).
+          // The old 0.08 veil stacked over 16 additive layers and showed as a red cone under
+          // the ship — the plasma must read planet-side only.
           // 16 thin layers x soft ring, gain 1.0 (-17% overall).
-          float alpha = rim * uLayerAlpha * noise * (0.08 + 0.92 * planetSide) * uPlasmaIntensity * flicker * 1.0;
+          float alpha = rim * uLayerAlpha * noise * (0.02 + 0.98 * planetSide) * uPlasmaIntensity * flicker * 1.0;
           gl_FragColor = vec4(color, alpha); // AdditiveBlending: rgb × alpha added to the scene
         }
       `,
@@ -229,7 +230,6 @@ export function PlasmaGlow({ ship }: { ship: ShipSheet }) {
       haloMeshes.push(skin);
     });
     uniformsListRef.current = list;
-    console.log("[PlasmaGlow] patched materials:", list.length, "halo twins:", haloMeshes.length); // TEMP debug — remove after check
     return () => {
       // Remove the twins and dispose the materials on unmount.
       for (const halo of haloMeshes) halo.parent?.remove(halo);
