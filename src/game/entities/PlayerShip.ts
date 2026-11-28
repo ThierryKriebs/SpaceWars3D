@@ -25,6 +25,7 @@ export function spawnPlayer(): void {
     lockInverseRotationAxisZ: 0,
     visualThrust: { x: 0, y: 0, z: 0 },
     visualRotation: { x: 0, y: 0, z: 0 },
+    planetProximity: 0,
   };
   state.ships.push(player);
 }

@@ -44,4 +44,6 @@ export interface ShipSheet {
 
   visualThrust: Vec3; // -1..1 per ship axis — EFFECTIVE push written by newton each frame (lock brake included, 0 at rest); read only by the 3D mirror to drive the gas plumes
   visualRotation: Vec3; // -1..1 per rotation axis — same for the turn demand
+
+  planetProximity: number; // 0..1 — 0 far from the planet, 1 at surface contact; written by newton (updatePlanetCollision), read by the plasma glow of THIS ship
 }

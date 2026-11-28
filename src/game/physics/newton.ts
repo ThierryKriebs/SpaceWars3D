@@ -1,6 +1,6 @@
 import { state } from "../core/state";
 import type { ShipSheet } from "@/types";
-import { EARTH, EARTH_SURFACE_MAX, SHIP_COLLISION_RADIUS } from "../core/world";
+import { EARTH, EARTH_SURFACE_MAX, PLASMA_OUTER_DISTANCE, SHIP_COLLISION_RADIUS } from "../core/world";
 
 // newton.ts — THE integrator: intentions become movement.
 // It is the ONLY module in the whole game allowed to write `position`.
@@ -394,7 +394,7 @@ function updatePlanetCollision(ship: ShipSheet): void {
 
   // Calcul de la distance entre le centre de la planète et le centre du vaisseau
   // 1e-6 => un petit nombre, évite la division par 0).
-  const distanceToPlanetCenter = Math.max(
+  const actualDistanceFromPlanetCenter = Math.max(
     Math.hypot(signedDistanceToPlanetCenterX, signedDistanceToPlanetCenterY, signedDistanceToPlanetCenterZ),
     1e-6
   );
@@ -403,12 +403,12 @@ function updatePlanetCollision(ship: ShipSheet): void {
   const touchingDistance = EARTH_SURFACE_MAX + SHIP_COLLISION_RADIUS; // 90 + 1.5 = 91.5
 
   // Si collision => Repousse le vaisseau + annulation de sa vitesse
-  if (distanceToPlanetCenter < touchingDistance) {
+  if (actualDistanceFromPlanetCenter < touchingDistance) {
     
     // Les PROPORTIONS centre planète → vaisseau : chaque distance signée ÷ distance → entre −1 et +1 sur chaque axe (X²+Y²+Z² = 1).
-    const proportionToPlanetCenterX = signedDistanceToPlanetCenterX / distanceToPlanetCenter;
-    const proportionToPlanetCenterY = signedDistanceToPlanetCenterY / distanceToPlanetCenter;
-    const proportionToPlanetCenterZ = signedDistanceToPlanetCenterZ / distanceToPlanetCenter;
+    const proportionToPlanetCenterX = signedDistanceToPlanetCenterX / actualDistanceFromPlanetCenter;
+    const proportionToPlanetCenterY = signedDistanceToPlanetCenterY / actualDistanceFromPlanetCenter;
+    const proportionToPlanetCenterZ = signedDistanceToPlanetCenterZ / actualDistanceFromPlanetCenter;
 
     // 1) Repousser le vaisseau : centre de la planète + proportions × distance de contact.
     ship.position.x = EARTH.position.x + proportionToPlanetCenterX * touchingDistance;
@@ -430,4 +430,9 @@ function updatePlanetCollision(ship: ShipSheet): void {
       ship.velocity.z -= proportionToPlanetCenterZ * velocityAlongPlanetToShipDirection;
     }
   }
+
+  // Atmospheric proximity for THIS ship's plasma glow (each sheet carries its own):
+  // 0 at PLASMA_OUTER_DISTANCE and beyond, 1 at surface contact.
+  const plasmaProximity = (PLASMA_OUTER_DISTANCE - actualDistanceFromPlanetCenter) / (PLASMA_OUTER_DISTANCE - touchingDistance);
+  ship.planetProximity = Math.min(Math.max(plasmaProximity, 0), 1);
 }

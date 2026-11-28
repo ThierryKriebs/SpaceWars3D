@@ -1318,3 +1318,15 @@ Vérifié : `tsc` propre ; `/play` → 200 ; chunk contient `displacementScale`/
 **Prochaine étape** : playtest sur `/play` face au soleil : disque sans bord dur, halo chaud, rayons qui pulsent doucement. Puis commit + push par Thierry (`Sun.tsx` + ce journal).
 
 **Règle du projet** : une session = une victoire.
+
+---
+
+## 2026-11-27 — Session 27 (suite 11) : chargement propre + effet plasma de rentrée atmosphérique (en cours)
+
+**Fait** : (1) `Scene.tsx` — un seul `<Suspense fallback={null}>` englobe TOUTE la scène : plus de planète qui pop 1 s après le reste, tout apparaît d'un coup ; `app/play/page.tsx` — fond `bg-black` derrière la scène (avant : page blanche pendant le chargement des textures 8K). (2) Plasma : `world.ts` ajoute `PLASMA_OUTER_DISTANCE = 110` ; `ShipSheet` (types/sheets.ts) gagne `planetProximity` 0..1, écrit chaque tick par `updatePlanetCollision` (newton.ts, pour CHAQUE vaisseau) : 0 à 110 du centre, 1 au contact (91.5) — testé headless (0/0.5/1 aux bonnes distances, indépendant par vaisseau). `src/components/game/effects/PlasmaGlow.tsx` monté dans chaque `ShipMirror` (Entities.tsx) : patch des matériaux de coque (clonés) en emissive + jumeaux de halo (géométrie ×2.2, BackSide additif, fondu `pow(1-fresnel, 1.2)`), modulé côté planète via `uPlanetDirWorld`. `tsc` propre.
+
+**Appris / incidents** : dans un ShaderMaterial brut, `objectNormal` n'existe pas (chunks internes seulement) → utiliser l'attribut `normal` ; un backtick dans un commentaire casse le template literal GLSL. Le halo en maillage jumeau garde toujours une coupure à sa silhouette ; le bruit haute fréquence fait des taches.
+
+**Prochaine étape** : demain — calculer les ZONES DE CONTACT réelles (distance au sol par sommet/point de la coque, pas seulement la direction) pour n'allumer le blanc QUE là où la coque touche/est au plus près de la planète ; blanc moins visible, rose plus présent et plus estompé ; bords du halo encore plus progressifs. Retirer le `console.log` temporaire de PlasmaGlow. Puis commit + push par Thierry.
+
+**Règle du projet** : une session = une victoire.

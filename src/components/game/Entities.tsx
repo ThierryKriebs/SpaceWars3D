@@ -14,6 +14,7 @@ import type { ShipSheet } from "@/types";
 import { ShiftSimple } from "./models/ships/ShiftSimple";
 import { ShiftDart } from "./models/ships/ShiftDart";
 import { makeShipCommands, type ShipCommands } from "./models/ships/shared/ThrusterKit";
+import { PlasmaGlow } from "./effects/PlasmaGlow";
 
 // Every model receives the command envelope (ctlRef) filled from the ship's intent:
 // models animate their hardware from it (RCS gas plumes, engine flame) — pure visuals.
@@ -71,6 +72,7 @@ function ShipMirror({ ship }: { ship: ShipSheet }) {
   return (
     <group ref={ref}>
       <Ship3DModel ctlRef={ctlRef} /> {/* render the chosen maquette inside the movable group */}
+      <PlasmaGlow ship={ship} /> {/* reentry plasma shell, intensity from ship.planetProximity */}
     </group>
   );
 }

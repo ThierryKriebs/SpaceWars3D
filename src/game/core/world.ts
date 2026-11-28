@@ -14,3 +14,8 @@ export const SHIP_COLLISION_RADIUS = 1.5;
 // The surface is a perfectly smooth sphere (relief is normal-map only, no geometric
 // displacement), so the collision sphere is exactly EARTH.radius.
 export const EARTH_SURFACE_MAX = EARTH.radius;
+
+// Atmospheric plasma (reentry glow) starts at this distance from the planet center
+// (10 units above the surface) and reaches full intensity at surface contact
+// (EARTH_SURFACE_MAX + SHIP_COLLISION_RADIUS = 91.5).
+export const PLASMA_OUTER_DISTANCE = EARTH.radius + 10; // 100 — plasma starts 10 units above the surface (at spawn the proximity is 0)
